@@ -217,6 +217,24 @@ def redirect_to_welcome():
 def return_index():
     return send_from_directory('src', 'index.html')
 
+@app.route('/db')
+def show_data():
+    conn_d = connectsql.connect_to_database()
+    cursor = conn_d.cursor()
+    cursor.execute("SHOW TABLES")
+    tables = cursor.fetchall()
+    table_data = {}
+
+    for table in tables:
+        table_name = table[0]
+        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        record_count = cursor.fetchone()[0]
+        table_data[table_name] = record_count
+    cursor.close()
+    conn_d.close()
+
+    return table_data
+
 
 @app.route('/src/<path:filename>')
 def serve_file(filename):
