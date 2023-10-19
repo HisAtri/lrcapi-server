@@ -26,7 +26,7 @@
 
         .blurry-box {
             width: 600px;
-            height: 371px;
+            height: 520px;
             background-color: rgba(255, 255, 255, 0.5);
             border-radius: 10px;
             position: fixed;
@@ -106,10 +106,25 @@
 </head>
 
 <body>
-    <h1>LrcApi已启动</h1>
+    <h1>LrcApi-公开接口</h1>
     <div class="blurry-box">
         <h4>歌词API地址：</h4>
         <code id="api_url">http://localhost/lyrics</code>
+        <h4>在线搜索</h4>
+        <input type="text" id="title" placeholder="标题"><br>
+        <input type="text" id="artist" placeholder="歌手"><br>
+        <input type="text" id="album" placeholder="专辑"><br><br>
+        <button onclick="searchSong()">搜索</button>
+        <script>
+            function searchSong() {
+                var title = document.getElementById("title").value;
+                var artist = document.getElementById("artist").value;
+                var album = document.getElementById("album").value;
+
+                var url = "/lyrics?title=" + encodeURIComponent(title) + "&artist=" + encodeURIComponent(artist) + "&album=" + encodeURIComponent(album) + "&path=none";
+                window.open(url, "_blank");
+            }
+        </script>
         <h4>更多内容</h4>
         <p>请参考<a href="https://github.com/HisAtri/LrcApi/blob/main/README.md">Github Readme Page</a></p>
         <h4>服务器状态</h4>
@@ -127,6 +142,8 @@
             </svg>
             Apache-2.0 license
         </a>
+        <br>
+        2023/10/12 阻塞问题已被（暴力）修复。
     </div>
     <script>
         var cDomain = window.location.protocol + '//' + window.location.hostname + '/lyrics';
@@ -159,7 +176,7 @@
         }
 
         testServerStatus();
-        setInterval(testServerStatus, 30000);
+        setInterval(testServerStatus, 60000);
 
         statusElement.addEventListener("click", function () {
             testServerStatus()
