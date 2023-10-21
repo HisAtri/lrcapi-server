@@ -100,6 +100,7 @@ def sql_key_search(song_name, singer_name, album_name):
         app.logger.info("No matching record found.")
 
 
+# 通过网络接口搜索
 @cache.memoize(timeout=36000)
 def get_lyrics_from_net(title, artist, album, r):
     if title is None and artist is None:
@@ -116,7 +117,7 @@ def get_lyrics_from_net(title, artist, album, r):
     sql_search = sql_key_search(title, artist, album)
     if sql_search:
         sql_lrc = base64.b64decode(sql_search).decode('utf-8')
-        return sql_lrc
+        return "[from:LrcAPI/db]\n" + sql_lrc
     else:
         # 使用歌曲名和作者名查询歌曲
         headers = {
@@ -176,7 +177,7 @@ def get_lyrics_from_net(title, artist, album, r):
             conn_t.commit()
             cursor.close()
             conn_t.close()
-            return lrc_text
+            return "[from:LrcAPI/200]\n" + lrc_text
 
     return None
 
@@ -216,6 +217,7 @@ def redirect_to_welcome():
 @app.route('/src')
 def return_index():
     return send_from_directory('src', 'index.html')
+
 
 @app.route('/db')
 def show_data():
