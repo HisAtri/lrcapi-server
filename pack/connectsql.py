@@ -4,9 +4,9 @@ import mysql.connector
 def connect_to_database():
     conn = mysql.connector.connect(
         host='45.145.228.219',
-        user='lylrc',
-        password='tdxSHwhsnADE67hC',
-        database='lylrc'
+        user='lrc',
+        password='tCTWRiJm7MhSf6JB',
+        database='lrc'
     )
     return conn
 
@@ -22,6 +22,7 @@ def check_database_structure(conn):
         # 数据库为空，创建表结构
         create_api_key_table = """
         CREATE TABLE api_key (
+            id INT AUTO_INCREMENT PRIMARY KEY,
             song_name TEXT,
             singer_name TEXT,
             album_name TEXT,
@@ -32,6 +33,7 @@ def check_database_structure(conn):
 
         create_search_table = """
         CREATE TABLE search (
+            id INT AUTO_INCREMENT PRIMARY KEY,
             song_name TEXT,
             singer_name TEXT,
             album_name TEXT,

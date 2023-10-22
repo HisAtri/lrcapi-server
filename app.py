@@ -1,14 +1,18 @@
-import base64
-from flask import Flask, request, abort, redirect, send_from_directory
-import os, sys
-import requests
-from urllib.parse import unquote_plus
-from flask_caching import Cache
 import argparse
-from waitress import serve
+import base64
+import hashlib
 import logging
+import os
+import sys
+from urllib.parse import unquote_plus
+
+import requests
+from flask import Flask, request, abort, redirect, send_from_directory
+from flask_caching import Cache
+from waitress import serve
 
 from pack import connectsql
+from pack import api
 
 
 # Warning检查器
@@ -60,6 +64,21 @@ def read_file_with_encoding(file_path, encodings):
     return None
 
 
+# hash计算器
+def calculate_md5(string):
+    # 创建一个 md5 对象
+    md5_hash = hashlib.md5()
+
+    # 将字符串转换为字节流并进行 MD5 计算
+    md5_hash.update(string.encode('utf-8'))
+
+    # 获取计算结果的十六进制表示，并去掉开头的 "0x"
+    md5_hex = md5_hash.hexdigest()
+    md5_hex = md5_hex.lstrip("0x")
+
+    return md5_hex
+
+
 # 在key索引中进行搜索
 # 搜索次序为关键词搜索主表-关键词搜索副表hash查主表-API搜索后写入
 def sql_key_search(song_name, singer_name, album_name):
@@ -101,17 +120,13 @@ def sql_key_search(song_name, singer_name, album_name):
 
 
 # 通过网络接口搜索
-@cache.memoize(timeout=36000)
-def get_lyrics_from_net(title, artist, album, r):
+# @cache.memoize(timeout=36000)
+def get_lyrics_from_net(title, artist, album):
     if title is None and artist is None:
         return None
     title = "" if title is None else title
     artist = "" if artist is None else artist
     album = "" if album is None else album
-    if r:
-        searcher = title + " " + artist
-    else:
-        searcher = title
 
     # 从数据库查询
     sql_search = sql_key_search(title, artist, album)
@@ -119,49 +134,22 @@ def get_lyrics_from_net(title, artist, album, r):
         sql_lrc = base64.b64decode(sql_search).decode('utf-8')
         return "[from:LrcAPI/db]\n" + sql_lrc
     else:
-        # 使用歌曲名和作者名查询歌曲
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36', }
-        # 第一层Json，要求获得Hash值
-        response = requests.get(
-            f'http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword={searcher}&page=1&pagesize=2&showtype=1',
-            headers=headers)
-        if response.status_code == 200:
-            song_info = response.json()
-            try:
-                songhash = song_info["data"]["info"][0]["hash"]
-                songname = song_info["data"]["info"][0]["songname"]
-                singername = song_info["data"]["info"][0].get("singername", "")
-                album_name = song_info["data"]["info"][0].get("album_name", "")
-            except:
-                return None
-
-            # 第二层Json，要求获取歌词ID和AccessKey
-            response2 = requests.get(
-                f"https://krcs.kugou.com/search?ver=1&man=yes&client=mobi&keyword=&duration=&hash={songhash}&album_audio_id=",
-                headers=headers)
-            lyrics_info = response2.json()
-            lyrics_id = lyrics_info["candidates"][0]["id"]
-            lyrics_key = lyrics_info["candidates"][0]["accesskey"]
-            # 第三层Json，要求获得并解码Base64
-            response3 = requests.get(
-                f"http://lyrics.kugou.com/download?ver=1&client=pc&id={lyrics_id}&accesskey={lyrics_key}&fmt=lrc&charset=utf8",
-                headers=headers)
-            lyrics_data = response3.json()
-            lyrics_encode = lyrics_data["content"]  # 这里是Base64编码的
-            lrc_text = base64.b64decode(lyrics_encode).decode('utf-8')  # 这里解码
-
+        lrc_text, lyrics_encode, songname, singername, album_name = api.search_content(title, artist, album)
+        if lrc_text:
             conn_t = connectsql.connect_to_database()
             cursor = conn_t.cursor()
+            # 使用base64字符串的md5
+            songinfo = f"title:{songname}&singer:{singername}&album:{album_name}"
+            info_hash = calculate_md5(songinfo)
             # 检查hash是否存在
             check_hash = f"SELECT * FROM api_key WHERE hash = %s"
-            check_value = (songhash,)
+            check_value = (info_hash,)
             cursor.execute(check_hash, check_value)
             result_hash = cursor.fetchone()
             if not result_hash:
-                # hash不存在，将hash插入主表
+                # hash不存在，将歌词插入主表
                 sql_insert = "INSERT INTO api_key (song_name, singer_name, album_name, hash, lyrics) VALUES (%s, %s, %s, %s, %s)"
-                sql_insert_value = (songname, singername, album_name, songhash, lyrics_encode)
+                sql_insert_value = (songname, singername, album_name, info_hash, lyrics_encode)
                 cursor.execute(sql_insert, sql_insert_value)
             # 检查查询词是否存在
             cursor = conn_t.cursor()
@@ -172,7 +160,7 @@ def get_lyrics_from_net(title, artist, album, r):
             if not result_hash_check:
                 # 插入search
                 sql_search_insert = "INSERT INTO search (song_name, singer_name, album_name, hash) VALUES (%s, %s, %s, %s)"
-                sql_search_insert_value = (title, artist, album, songhash)
+                sql_search_insert_value = (title, artist, album, info_hash)
                 cursor.execute(sql_search_insert, sql_search_insert_value)
             conn_t.commit()
             cursor.close()
@@ -197,16 +185,14 @@ def lyrics():
 
     try:
         # 查询外部API
-        lyrics_os = get_lyrics_from_net(title, artist, album, True)
-        if lyrics_os is None:
-            lyrics_os = get_lyrics_from_net(title, artist, album, False)
+        lyrics_os = get_lyrics_from_net(title, artist, album)
     except Exception as e:
         app.logger.error("Unable to get lyrics." + str(e))
         lyrics_os = None
     if lyrics_os is not None:
         return lyrics_os
 
-    return "Lyrics not found.", 404
+    return "未找到匹配的歌词", 404
 
 
 @app.route('/')
