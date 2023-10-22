@@ -1,10 +1,13 @@
 import base64
 import requests
+from fake_useragent import UserAgent
+
+ua = UserAgent().chrome
 
 
 def kugou(searcher):
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.131 Safari/537.36', }
+        'User-Agent': ua, }
     # 第一层Json，要求获得Hash值
     response = requests.get(
         f'http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword={searcher}&page=1&pagesize=2&showtype=1',
@@ -36,7 +39,29 @@ def kugou(searcher):
         return lrc_text, lyrics_encode, songname, singername, album_name
 
 
+def netease_api(searcher):
+    headers = {
+        'User-Agent': ua, }
+    api_url = "http://127.0.0.1:3373"
+    response = requests.get(f"{api_url}/search?keywords={searcher}", headers=headers)
+    result = response.json()
+    if result == {"result": {"songCount": 0}, "code": 200}:
+        return None
+
+    song_name = result["result"]["songs"][0]["name"]
+    singer_list = [x["name"] for x in result["result"]["songs"][0]["artists"]]
+    singer_name = "&".join(singer_list)
+    album_name = result["result"]["songs"][0]["album"]["name"]
+    song_id = result["result"]["songs"][0]["id"]
+    lyrics_request = requests.get(f"{api_url}/lyric?id={song_id}", headers=headers).json()
+    lrc_text = lyrics_request["lrc"]["lyric"]
+    lrc_encode = base64.b64encode(lrc_text.encode('utf-8')).decode('utf-8')
+    return lrc_text, lrc_encode, song_name, singer_name, album_name
+
+
 def search_content(title, artist, album):
-    search_text = title+artist+album
+    search_text = f"{title} {artist} {album}"
     result = kugou(search_text)
+    if not result:
+        result = netease_api(f"{title} {artist}")
     return result
