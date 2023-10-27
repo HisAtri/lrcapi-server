@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>LyricsAPI-Status</title>
+    <link rel="stylesheet" href="/src/css/bootstrap.css">
+    <style>
+        .chart-container {
+            height: 100%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+      <div class="row">
+        <div class="col">
+            <div class="chart-container">
+                <canvas id="dataDesign"></canvas>
+            </div>
+        </div>
+        <div class="col">
+            <div class="chart-container">
+                <canvas id="usage-chart"></canvas>
+            </div>
+        </div>
+        <div class="col">
+            <div class="chart-container">
+                <canvas id="bandwidth-chart"></canvas>
+            </div>
+        </div>
+      </div>
+    </div>
+    <script src="/src/js/chart.js"></script>
+    <script src="/src/js/chartjs-adapter-moment.js"></script>
+    <script src="/src/js/moment.min.js"></script>
+    <script src="/src/js/jquery-3.6.0.min.js"></script>
+    <script>
+        // 日期计算工具
+        function calculateFutureDate(n) {
+            // 定义开始日期
+            const startDate = new Date('2023-10-21');
+            // 获取开始日期的时间戳，并加上n天的时间戳（1天 = 24小时 * 60分钟 * 60秒 * 1000毫秒）
+            const futureTimestamp = startDate.getTime() + (n * 24 * 60 * 60 * 1000);
+            // 创建一个新的Date对象，使用计算后的时间戳
+            const futureDate = new Date(futureTimestamp);
+            // 获取年、月、日的信息
+            const year = futureDate.getFullYear();
+            const month = ('0' + (futureDate.getMonth() + 1)).slice(-2); // 月份从0开始，需要+1，然后补零
+            const day = ('0' + futureDate.getDate()).slice(-2); // 补零
+            // 拼接成日期表达式，格式为YYYY-MM-DD
+            // 返回计算后的日期表达式
+            return year + '-' + month + '-' + day;
+        }
+        // 构建[1,2,3,...,n]的方法
+        function buildArray(n) {
+            const result = [];
+            for (let i = 0; i <= n; i++) {
+                result.push(calculateFutureDate(i));
+            }
+            return result;
+        }
+        //计算最大值
+        function findMaxKey(obj) {
+          let maxKey = -Infinity;
+          for (let key in obj) {
+            if (Number(key) > maxKey) {
+              maxKey = Number(key);
+            }
+          }
+          return maxKey;
+        }
+        // 连接API
+        fetch('/api/api')
+          .then(response => response.json())
+          .then(data => {
+              // 将数据赋值给变量
+              set_dataDesign(data)
+          })
+          .catch(error => {
+            // 处理请求错误
+            console.error('Error:', error);
+          });
+        function set_dataDesign(jsonData) {
+            const xy_data = jsonData["data"];
+            //构建格式[{x:x,y:y},{x:x,y:y}]
+            const data_re = Object.entries(xy_data).map(([key, value]) => ({
+              x: parseInt(key),
+              y: value
+            }));
+            //计算x的最大值
+            const maxX = findMaxKey(xy_data);
+            const labels_list = buildArray(maxX);
+            const ctx = document.getElementById('dataDesign');
+            const doc_data = {
+                labels: labels_list,
+                datasets: [{
+                    label: '数据量',
+                    data: data_re,
+                }]
+            };
+
+            const config = {
+            type: 'line',
+            data: doc_data,
+            options: {
+                interaction: {
+                    intersect: false,
+                    mode: 'index'
+                },
+                plugins: {
+                    title: {
+                        display: true,
+                        text: '数据量统计'
+                    }
+                },
+                aspectRatio: 1,
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                    },
+                    y: {
+                        beginAtZero: true,
+                    }
+                },
+                pointRadius:0,
+                tension: 0.2
+            }
+        };
+            new Chart(ctx, config);
+        }
+    </script>
+    <script>
+        function bytesToMegabytes(bytes) {
+            return bytes / (1024 * 1024 * 60);
+        }
+
+        $(document).ready(function() {
+            var usageCtx = document.getElementById('usage-chart').getContext('2d');
+            var usageChart = new Chart(usageCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: 'CPU Usage (%)',
+                        data: [],
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }, {
+                        label: 'Memory Usage (%)',
+                        data: [],
+                        borderColor: 'rgb(255, 99, 132)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '系统监控'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                        },
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                        }
+                    },
+                    pointRadius:0,
+                    tension: 0.2
+                }
+            });
+
+            var bandwidthCtx = document.getElementById('bandwidth-chart').getContext('2d');
+            var bandwidthChart = new Chart(bandwidthCtx, {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        label: '上行 (MB/s)',
+                        data: [],
+                        borderColor: 'rgb(255, 205, 86)',
+                        tension: 0.1
+                    }, {
+                        label: '下行 (MB/s)',
+                        data: [],
+                        borderColor: 'rgb(153, 102, 255)',
+                        tension: 0.1
+                    }]
+                },
+                options: {
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '网络监控'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                        },
+                        y: {
+                            beginAtZero: true,
+                        }
+                    },
+                    pointRadius:0,
+                    tension: 0.2
+                }
+            });
+
+            function updateChartData() {
+                $.getJSON('/api/status', function(data) {
+                    var labels = data.map(function(point) {
+                        return new Date(point.timestamp).toLocaleTimeString();
+                    });
+
+                    // Update usage chart
+                    usageChart.data.labels = labels;
+                    usageChart.data.datasets[0].data = data.map(function(point) {
+                        return point.cpu_percent;
+                    });
+                    usageChart.data.datasets[1].data = data.map(function(point) {
+                        return point.memory;
+                    });
+                    usageChart.update();
+
+                    // Update bandwidth chart
+                    bandwidthChart.data.labels = labels;
+                    bandwidthChart.data.datasets[0].data = data.map(function(point) {
+                        return bytesToMegabytes(point.bandwidth.bytes_sent);
+                    });
+                    bandwidthChart.data.datasets[1].data = data.map(function(point) {
+                        return bytesToMegabytes(point.bandwidth.bytes_recv);
+                    });
+                    bandwidthChart.update();
+                });
+            }
+
+            // Load data when the page is loaded
+            updateChartData();
+        });
+    </script>
+</body>

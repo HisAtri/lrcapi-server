@@ -165,3 +165,4 @@ flask_cache/
 # others
 test.py
 .idea/
+data/

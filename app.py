@@ -5,14 +5,21 @@ import logging
 import os
 import sys
 from urllib.parse import unquote_plus
+import schedule
+import psutil
+import time
 
-import requests
-from flask import Flask, request, abort, redirect, send_from_directory
+from collections import deque
+from datetime import datetime
+
+from flask import Flask, request, abort, redirect, send_from_directory, jsonify
 from flask_caching import Cache
 from waitress import serve
+from threading import Thread
 
 from pack import connectsql
 from pack import api
+from pack import wdata
 
 
 # Warning检查器
@@ -36,6 +43,7 @@ parser.add_argument('--auth', type=str, help='用于验证Header.Authentication�
 args = parser.parse_args()
 # 赋值到token，启动参数优先性最高，其次环境变量，如果都未定义则赋值为false
 token = args.auth if args.auth is not None else os.environ.get('API_AUTH', False)
+data_points = deque(maxlen=24 * 60)  # Assuming data is collected every minute
 
 app = Flask(__name__)
 
@@ -117,6 +125,81 @@ def sql_key_search(song_name, singer_name, album_name):
         cursor.close()
         conn_r.close()
         app.logger.info("No matching record found.")
+
+
+# 数据库统计
+def statistics():
+    conn_d = connectsql.connect_to_database()
+    cursor = conn_d.cursor()
+    cursor.execute("SHOW TABLES")
+    tables = cursor.fetchall()
+    table_data = {}
+
+    for table in tables:
+        table_name = table[0]
+        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+        record_count = cursor.fetchone()[0]
+        table_data[table_name] = record_count
+    cursor.close()
+    conn_d.close()
+
+    return table_data
+
+
+def record_data():
+    last_bandwidth = None
+    while True:
+        cpu_percent = psutil.cpu_percent()
+        current_bandwidth = psutil.net_io_counters()
+        memory = psutil.virtual_memory().percent
+        timestamp = datetime.now()
+
+        if last_bandwidth is not None:
+            delta_bandwidth = {
+                'bytes_sent': current_bandwidth.bytes_sent - last_bandwidth.bytes_sent,
+                'bytes_recv': current_bandwidth.bytes_recv - last_bandwidth.bytes_recv
+            }
+        else:
+            delta_bandwidth = {
+                'bytes_sent': 0,
+                'bytes_recv': 0
+            }
+
+        data_points.append({
+            'timestamp': timestamp,
+            'cpu_percent': cpu_percent,
+            'bandwidth': delta_bandwidth,
+            'memory': memory
+        })
+
+        last_bandwidth = current_bandwidth
+        time.sleep(60)
+
+
+def refresh_data():
+    # 计算日期差距
+    def day_count():
+        now_time = int(time.time())
+        # 2023-10-21 00:00:00
+        start_time = 1697817600
+        time_diff = now_time - start_time
+        date_diff = time_diff // 86400
+        return date_diff
+
+    # 修改data
+    def _data():
+        val = statistics()
+        val_s = val["api_key"]
+        this_date = day_count()
+        data = wdata.load_data()
+        data[this_date] = val_s
+        wdata.append_data(data)
+
+    schedule.every().day.at("00:00").do(_data)
+    schedule.every().hour.do(_data)
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
 
 
 # 通过网络接口搜索
@@ -205,23 +288,19 @@ def return_index():
     return send_from_directory('src', 'index.html')
 
 
+@app.route('/api/api')
+def json_api():
+    return wdata.load_json()
+
+
+@app.route('/api/status')
+def stats():
+    return jsonify(list(data_points))
+
+
 @app.route('/db')
 def show_data():
-    conn_d = connectsql.connect_to_database()
-    cursor = conn_d.cursor()
-    cursor.execute("SHOW TABLES")
-    tables = cursor.fetchall()
-    table_data = {}
-
-    for table in tables:
-        table_name = table[0]
-        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-        record_count = cursor.fetchone()[0]
-        table_data[table_name] = record_count
-    cursor.close()
-    conn_d.close()
-
-    return table_data
+    return statistics()
 
 
 @app.route('/src/<path:filename>')
@@ -233,9 +312,18 @@ def serve_file(filename):
 
 
 if __name__ == '__main__':
+    # 日志处理
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
     logger = logging.getLogger('')
     warning_handler = WarningHandler()
     logger.addHandler(warning_handler)
+    # 添加线程：定时更新JSON
+    refresh_task_thread = Thread(target=refresh_data)
+    refresh_task_thread.start()
+    # 添加线程：获取系统状态
+    data_thread = Thread(target=record_data)
+    data_thread.start()
+    # WSGI 生产环境
     serve(app, host='0.0.0.0', port=args.port)
+    # Flask 开发调试
     # app.run(host='0.0.0.0', port=args.port)
