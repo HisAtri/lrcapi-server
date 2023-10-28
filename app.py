@@ -288,14 +288,15 @@ def return_index():
     return send_from_directory('src', 'index.html')
 
 
-@app.route('/api/api')
+@app.route('/api')
 def json_api():
-    return wdata.load_json()
-
-
-@app.route('/api/status')
-def stats():
-    return jsonify(list(data_points))
+    request_args = request.args.get('get')
+    if request_args == "data":
+        return wdata.load_json()
+    elif request_args == "status":
+        return jsonify(list(data_points))
+    elif request_args == "github":
+        return wdata.get_github_repo()
 
 
 @app.route('/db')

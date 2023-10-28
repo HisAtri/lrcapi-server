@@ -5,53 +5,60 @@
     <meta charset="UTF-8">
     <title>LyricsAPI-Status</title>
     <link rel="stylesheet" href="/src/css/bootstrap.css">
+    <link rel="stylesheet" href="http://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         .chart-container {
-            height: 100%;
+            max-height: 100%;
+        }
+        .container {
+            width: 60%;
+            margin-top: 20px;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-      <div class="row">
-        <div class="col">
-            <div class="chart-container">
-                <canvas id="dataDesign"></canvas>
+        <div class="row">
+            <div class="col wedata">
+                <div class="chart-container card">
+                    <canvas id="dataDesign"></canvas>
+                </div>
             </div>
         </div>
-        <div class="col">
-            <div class="chart-container">
-                <canvas id="usage-chart"></canvas>
+        <br>
+        <div class="row">
+            <div class="col">
+                <div class="chart-container card">
+                    <canvas id="usage-chart"></canvas>
+                </div>
             </div>
         </div>
-        <div class="col">
-            <div class="chart-container">
-                <canvas id="bandwidth-chart"></canvas>
+        <br>
+        <div class="row">
+            <div class="col">
+                <div class="chart-container card">
+                    <canvas id="bandwidth-chart"></canvas>
+                </div>
             </div>
         </div>
-      </div>
     </div>
     <script src="/src/js/chart.js"></script>
     <script src="/src/js/jquery-3.6.0.min.js"></script>
     <script>
         // 日期计算工具
         function calculateFutureDate(n) {
-            // 定义开始日期
             const startDate = new Date('2023-10-21');
-            // 获取开始日期的时间戳，并加上n天的时间戳（1天 = 24小时 * 60分钟 * 60秒 * 1000毫秒）
             const futureTimestamp = startDate.getTime() + (n * 24 * 60 * 60 * 1000);
-            // 创建一个新的Date对象，使用计算后的时间戳
             const futureDate = new Date(futureTimestamp);
             // 获取年、月、日的信息
             const year = futureDate.getFullYear();
             const month = ('0' + (futureDate.getMonth() + 1)).slice(-2); // 月份从0开始，需要+1，然后补零
             const day = ('0' + futureDate.getDate()).slice(-2); // 补零
             // 拼接成日期表达式，格式为YYYY-MM-DD
-            // 返回计算后的日期表达式
             return year + '-' + month + '-' + day;
         }
-        // 构建[1,2,3,...,n]的方法
+        // 构建[1,2,3,...,n]
         function buildArray(n) {
             const result = [];
             for (let i = 0; i <= n; i++) {
@@ -61,31 +68,31 @@
         }
         //计算最大值
         function findMaxKey(obj) {
-          let maxKey = -Infinity;
-          for (let key in obj) {
-            if (Number(key) > maxKey) {
-              maxKey = Number(key);
+            let maxKey = -Infinity;
+            for (let key in obj) {
+                if (Number(key) > maxKey) {
+                    maxKey = Number(key);
+                }
             }
-          }
-          return maxKey;
+            return maxKey;
         }
         // 连接API
-        fetch('/api/api')
-          .then(response => response.json())
-          .then(data => {
-              // 将数据赋值给变量
-              set_dataDesign(data)
-          })
-          .catch(error => {
-            // 处理请求错误
-            console.error('Error:', error);
-          });
+        fetch('/api?get=data')
+            .then(response => response.json())
+            .then(data => {
+                // 将数据赋值给变量
+                set_dataDesign(data)
+            })
+            .catch(error => {
+                // 处理请求错误
+                console.error('Error:', error);
+            });
         function set_dataDesign(jsonData) {
             const xy_data = jsonData["data"];
             //构建格式[{x:x,y:y},{x:x,y:y}]
             const data_re = Object.entries(xy_data).map(([key, value]) => ({
-              x: parseInt(key),
-              y: value
+                x: parseInt(key),
+                y: value
             }));
             //计算x的最大值
             const maxX = findMaxKey(xy_data);
@@ -100,32 +107,31 @@
             };
 
             const config = {
-            type: 'line',
-            data: doc_data,
-            options: {
-                interaction: {
-                    intersect: false,
-                    mode: 'index'
-                },
-                plugins: {
-                    title: {
-                        display: true,
-                        text: '数据量统计'
-                    }
-                },
-                aspectRatio: 1,
-                scales: {
-                    x: {
-                        beginAtZero: true,
+                type: 'line',
+                data: doc_data,
+                options: {
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
                     },
-                    y: {
-                        beginAtZero: true,
-                    }
-                },
-                pointRadius:0,
-                tension: 0.2
-            }
-        };
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: '数据量统计'
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                        },
+                        y: {
+                            beginAtZero: true,
+                        }
+                    },
+                    pointRadius: 0,
+                    tension: 0.2
+                }
+            };
             new Chart(ctx, config);
         }
     </script>
@@ -134,7 +140,7 @@
             return bytes / (1024 * 1024 * 60);
         }
 
-        $(document).ready(function() {
+        $(document).ready(function () {
             var usageCtx = document.getElementById('usage-chart').getContext('2d');
             var usageChart = new Chart(usageCtx, {
                 type: 'line',
@@ -174,7 +180,7 @@
                             max: 100,
                         }
                     },
-                    pointRadius:0,
+                    pointRadius: 0,
                     tension: 0.2
                 }
             });
@@ -215,41 +221,41 @@
                         },
                         y: {
                             beginAtZero: true,
-                            suggestedMax:10,
+                            suggestedMax: 10,
                             type: 'logarithmic',
                         }
                     },
-                    pointRadius:0,
+                    pointRadius: 0,
                     tension: 0.2
                 }
             });
 
             function updateChartData() {
-                $.getJSON('/api/status', function(data) {
-                    var labels = data.map(function(point) {
-                      var time = new Date(point.timestamp);
-                      var hour_z = time.getHours() - 8
-                      var hours = hour_z.toString().padStart(2, '0');
-                      var minutes = time.getMinutes().toString().padStart(2, '0');
-                      return hours + ':' + minutes;
+                $.getJSON('/api?get=status', function (data) {
+                    var labels = data.map(function (point) {
+                        var time = new Date(point.timestamp);
+                        var hour_z = (time.getHours() + 16) % 24;
+                        var hours = hour_z.toString().padStart(2, '0');
+                        var minutes = time.getMinutes().toString().padStart(2, '0');
+                        return hours + ':' + minutes;
                     });
 
                     // Update usage chart
                     usageChart.data.labels = labels;
-                    usageChart.data.datasets[0].data = data.map(function(point) {
+                    usageChart.data.datasets[0].data = data.map(function (point) {
                         return point.cpu_percent;
                     });
-                    usageChart.data.datasets[1].data = data.map(function(point) {
+                    usageChart.data.datasets[1].data = data.map(function (point) {
                         return point.memory;
                     });
                     usageChart.update();
 
                     // Update bandwidth chart
                     bandwidthChart.data.labels = labels;
-                    bandwidthChart.data.datasets[0].data = data.map(function(point) {
+                    bandwidthChart.data.datasets[0].data = data.map(function (point) {
                         return bytesToMegabytes(point.bandwidth.bytes_sent);
                     });
-                    bandwidthChart.data.datasets[1].data = data.map(function(point) {
+                    bandwidthChart.data.datasets[1].data = data.map(function (point) {
                         return bytesToMegabytes(point.bandwidth.bytes_recv);
                     });
                     bandwidthChart.update();
