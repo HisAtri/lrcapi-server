@@ -33,8 +33,6 @@
       </div>
     </div>
     <script src="/src/js/chart.js"></script>
-    <script src="/src/js/chartjs-adapter-moment.js"></script>
-    <script src="/src/js/moment.min.js"></script>
     <script src="/src/js/jquery-3.6.0.min.js"></script>
     <script>
         // 日期计算工具
@@ -217,6 +215,7 @@
                         },
                         y: {
                             beginAtZero: true,
+                            type: 'logarithmic',
                         }
                     },
                     pointRadius:0,
@@ -227,7 +226,11 @@
             function updateChartData() {
                 $.getJSON('/api/status', function(data) {
                     var labels = data.map(function(point) {
-                        return new Date(point.timestamp).toLocaleTimeString();
+                      var time = new Date(point.timestamp);
+                      var hour_z = time.getHours() - 8
+                      var hours = hour_z.toString().padStart(2, '0');
+                      var minutes = time.getMinutes().toString().padStart(2, '0');
+                      return hours + ':' + minutes;
                     });
 
                     // Update usage chart
