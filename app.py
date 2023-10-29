@@ -44,6 +44,7 @@ args = parser.parse_args()
 # 赋值到token，启动参数优先性最高，其次环境变量，如果都未定义则赋值为false
 token = args.auth if args.auth is not None else os.environ.get('API_AUTH', False)
 data_points = deque(maxlen=24 * 60)  # Assuming data is collected every minute
+cache_statistics = deque([0, 1, 2], maxlen=1000)  # 缓存统计的最大长度
 
 app = Flask(__name__)
 
@@ -196,7 +197,7 @@ def refresh_data():
         wdata.append_data(data)
 
     schedule.every().day.at("00:00").do(_data)
-    schedule.every().hour.do(_data)
+    schedule.every().minute.do(_data)
     while True:
         schedule.run_pending()
         time.sleep(1)
@@ -206,6 +207,7 @@ def refresh_data():
 # @cache.memoize(timeout=36000)
 def get_lyrics_from_net(title, artist, album):
     if title is None and artist is None:
+        cache_statistics.append(2)
         return None
     title = "" if title is None else title
     artist = "" if artist is None else artist
@@ -215,6 +217,7 @@ def get_lyrics_from_net(title, artist, album):
     sql_search = sql_key_search(title, artist, album)
     if sql_search:
         sql_lrc = base64.b64decode(sql_search).decode('utf-8')
+        cache_statistics.append(1)
         return "[from:LrcAPI/db]\n" + sql_lrc
     else:
         lrc_text, lyrics_encode, songname, singername, album_name = api.search_content(title, artist, album)
@@ -248,8 +251,9 @@ def get_lyrics_from_net(title, artist, album):
             conn_t.commit()
             cursor.close()
             conn_t.close()
+            cache_statistics.append(0)
             return "[from:LrcAPI/200]\n" + lrc_text
-
+    cache_statistics.append(2)
     return None
 
 
@@ -267,7 +271,7 @@ def lyrics():
         title, artist, album = None, None, None
 
     try:
-        # 查询外部API
+        # 查询外部API与数据库
         lyrics_os = get_lyrics_from_net(title, artist, album)
     except Exception as e:
         app.logger.error("Unable to get lyrics." + str(e))
@@ -297,6 +301,8 @@ def json_api():
         return jsonify(list(data_points))
     elif request_args == "github":
         return wdata.get_github_repo()
+    elif request_args == "cache_st":
+        return jsonify(list(cache_statistics))
 
 
 @app.route('/db')

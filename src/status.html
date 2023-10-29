@@ -10,9 +10,19 @@
         .chart-container {
             max-height: 100%;
         }
+
+        .cacheDesign {
+            max-height: 100%;
+            max-width: 100%;
+        }
+
         .container {
-            width: 60%;
+            width: 70%;
             margin-top: 20px;
+        }
+
+        .chartcard {
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -20,24 +30,29 @@
 <body>
     <div class="container">
         <div class="row">
-            <div class="col wedata">
-                <div class="chart-container card">
+            <div class="col chartcard">
+                <div class="chart-container card shadow-sm">
                     <canvas id="dataDesign"></canvas>
                 </div>
             </div>
-        </div>
-        <br>
-        <div class="row">
-            <div class="col">
-                <div class="chart-container card">
-                    <canvas id="usage-chart"></canvas>
+            <div class="col chartcard">
+                <div class="chart-container card shadow-sm row">
+                    <div class="col-md">
+                        <canvas class="cacheDesign" id="cacheDesign"></canvas>
+                    </div>
+                    <div class="col-md"></div>
                 </div>
             </div>
         </div>
         <br>
         <div class="row">
-            <div class="col">
-                <div class="chart-container card">
+            <div class="col chartcard">
+                <div class="chart-container card shadow-sm">
+                    <canvas id="usage-chart"></canvas>
+                </div>
+            </div>
+            <div class="col chartcard">
+                <div class="chart-container card shadow-sm">
                     <canvas id="bandwidth-chart"></canvas>
                 </div>
             </div>
@@ -76,12 +91,26 @@
             }
             return maxKey;
         }
+        function convertToPercentage(array) {
+            const total = array.reduce((sum, value) => sum + value, 0);
+            return array.map(value => ((value / total) * 100).toFixed(2));
+        }
         // 连接API
         fetch('/api?get=data')
             .then(response => response.json())
             .then(data => {
                 // 将数据赋值给变量
                 set_dataDesign(data)
+            })
+            .catch(error => {
+                // 处理请求错误
+                console.error('Error:', error);
+            });
+        fetch('/api?get=cache_st')
+            .then(response => response.json())
+            .then(data => {
+                // 将数据赋值给变量
+                set_cacheDesign(data)
             })
             .catch(error => {
                 // 处理请求错误
@@ -134,6 +163,41 @@
             };
             new Chart(ctx, config);
         }
+        function set_cacheDesign(array) {
+            const cache_counts = [0, 0, 0];
+            for (let i = 0; i < array.length; i++) {
+                const element = array[i];
+                cache_counts[element]++;
+            }
+            const charx = document.getElementById('cacheDesign');
+            const ch_data = {
+                datasets: [{
+                    label: "缓存统计",
+                    data: convertToPercentage(cache_counts),
+                    backgroundColor: [
+                        'rgb(96, 122, 235)',
+                        'rgb(55, 255, 55)',
+                        'rgb(255, 80, 55)'
+                    ],
+                }],
+                labels: [
+                    '未缓存(%)',
+                    '已缓存(%)',
+                    '失败(%)'
+                ]
+            }
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+            };
+
+            const config = {
+                type: 'doughnut',
+                data: ch_data,
+                options: options,
+            };
+            new Chart(charx, config);
+        }
     </script>
     <script>
         function bytesToMegabytes(bytes) {
@@ -181,7 +245,7 @@
                         }
                     },
                     pointRadius: 0,
-                    tension: 0.2
+                    tension: 0.1
                 }
             });
 
@@ -226,7 +290,7 @@
                         }
                     },
                     pointRadius: 0,
-                    tension: 0.2
+                    tension: 0.1
                 }
             });
 
