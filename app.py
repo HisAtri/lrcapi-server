@@ -303,6 +303,7 @@ def json_api():
         return wdata.get_github_repo()
     elif request_args == "cache_st":
         return jsonify(list(cache_statistics))
+    abort(403)
 
 
 @app.route('/db')
