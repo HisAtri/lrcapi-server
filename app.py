@@ -236,7 +236,7 @@ def get_lyrics_from_net(title, artist, album):
             cursor.close()
             conn_t.close()
             cache_statistics.append(0)
-            return "[from:LrcAPI/200]\n" + lrc_text
+            return "[from:API/200]\n" + lrc_text
     cache_statistics.append(2)
     return None
 
@@ -249,8 +249,10 @@ def lyrics():
     try:
         # 通过request参数获取音乐Tag
         title = unquote_plus(request.args.get('title'))
-        artist = unquote_plus(request.args.get('artist'))
-        album = unquote_plus(request.args.get('album'))
+        artist = unquote_plus(request.args.get('artist', ''))
+        album = unquote_plus(request.args.get('album', ''))
+        if (not album) or (album == "[Unknown Album]"):
+            album = ""
     except Exception as e:
         app.logger.error("Unable to get song tags." + str(e))
         title, artist, album = None, None, None
