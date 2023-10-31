@@ -4,13 +4,13 @@ import hashlib
 import logging
 import os
 import sys
-from urllib.parse import unquote_plus
 import schedule
 import psutil
 import time
 
 from collections import deque
 from datetime import datetime
+from urllib.parse import unquote_plus
 
 from flask import Flask, request, abort, redirect, send_from_directory, jsonify
 from waitress import serve
@@ -36,7 +36,7 @@ connectsql.check_database_structure(conn_f)
 conn_f.close()
 
 # 创建一个解析器
-parser = argparse.ArgumentParser(description="启动LRCAPI服务器")
+parser = argparse.ArgumentParser(description="启动LRC-API服务器")
 # 添加一个 `--port` 参数，默认值28883
 parser.add_argument('--port', type=int, default=28883, help='应用的运行端口，默认28883')
 parser.add_argument('--auth', type=str, help='用于验证Header.Authentication字段，建议纯ASCII字符')
@@ -77,58 +77,51 @@ def calculate_md5(string):
 # 在key索引中进行搜索
 # 搜索次序为关键词搜索主表-关键词搜索副表hash查主表-API搜索后写入
 def sql_key_search(song_name, singer_name, album_name):
-    conn_r = connectsql.connect_to_database()
-    cursor = conn_r.cursor()
-    # 从主表查询
-    query = "SELECT lyrics FROM api_key WHERE song_name = %s AND singer_name = %s AND album_name = %s"
-    values = (song_name, singer_name, album_name)
-    cursor.execute(query, values)
-    result = cursor.fetchone()
-    cursor.close()
-    if result:
-        conn_r.close()
-        # 找到对应的lyrics了，结束，返回
-        lyrics_db = result[0]
-        return lyrics_db
-    else:
-        # 未找到对应的歌词，保持连接，尝试使用search表查询
-        cursor = conn_r.cursor()
-        query = "SELECT hash FROM search WHERE song_name = %s AND singer_name = %s AND album_name = %s"
-        values = (song_name, singer_name, album_name)
-        cursor.execute(query, values)
-        result_hash = cursor.fetchone()
-        if result_hash:
-            hash = result_hash[0]
-            s_query = f"SELECT lyrics FROM api_key WHERE hash = %s"
-            s_value = (hash,)
-            cursor.execute(s_query, s_value)
-            result_lrc = cursor.fetchone()
-            cursor.close()
-            conn_r.close()
-            if result_lrc:
-                return result_lrc[0]
+    with connectsql.connect_to_database() as conn_r:
+        with conn_r.cursor() as cursor:
+            # 从主表查询
+            query = "SELECT lyrics FROM api_key WHERE song_name = %s AND singer_name = %s AND album_name = %s"
+            values = (song_name, singer_name, album_name)
+            cursor.execute(query, values)
+            result = cursor.fetchone()
+
+            if result:
+                # 找到对应的lyrics了，结束，返回
+                lyrics_db = result[0]
+                return lyrics_db
             else:
-                return ""
-        cursor.close()
-        conn_r.close()
-        app.logger.info("No matching record found.")
+                # 未找到对应的歌词，保持连接，尝试使用search表查询
+                cursor.execute("SELECT hash FROM search WHERE song_name = %s AND singer_name = %s AND album_name = %s",
+                               values)
+                result_hash = cursor.fetchone()
+
+                if result_hash:
+                    keywords_hash = result_hash[0]
+                    cursor.execute("SELECT lyrics FROM api_key WHERE hash = %s", (keywords_hash,))
+                    result_lrc = cursor.fetchone()
+
+                    if result_lrc:
+                        return result_lrc[0]
+                    else:
+                        return ""
+                else:
+                    app.logger.info("No matching record found.")
+                    return ""
 
 
 # 数据库统计
 def statistics():
-    conn_d = connectsql.connect_to_database()
-    cursor = conn_d.cursor()
-    cursor.execute("SHOW TABLES")
-    tables = cursor.fetchall()
-    table_data = {}
+    with connectsql.connect_to_database() as conn_d:
+        with conn_d.cursor() as cursor:
+            cursor.execute("SHOW TABLES")
+            tables = cursor.fetchall()
+            table_data = {}
 
-    for table in tables:
-        table_name = table[0]
-        cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
-        record_count = cursor.fetchone()[0]
-        table_data[table_name] = record_count
-    cursor.close()
-    conn_d.close()
+            for table in tables:
+                table_name = table[0]
+                cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                record_count = cursor.fetchone()[0]
+                table_data[table_name] = record_count
 
     return table_data
 
@@ -160,14 +153,14 @@ def record_data():
         })
 
         last_bandwidth = current_bandwidth
-        time.sleep(60)
+        time.sleep(600)
 
 
 def refresh_data():
     # 计算日期差距
     def day_count():
         now_time = int(time.time())
-        # 2023-10-21 00:00:00
+        # 开始时间 2023-10-21 00:00:00 的时间戳
         start_time = 1697817600
         time_diff = now_time - start_time
         date_diff = time_diff // 86400
@@ -205,37 +198,36 @@ def get_lyrics_from_net(title, artist, album):
         cache_statistics.append(1)
         return "[from:LrcAPI/db]\n" + sql_lrc
     else:
-        lrc_text, lyrics_encode, songname, singername, album_name = api.search_content(title, artist, album)
+        lrc_text, lyrics_encode, song_name, singer_name, album_name = api.search_content(title, artist, album)
         if lrc_text:
-            conn_t = connectsql.connect_to_database()
-            cursor = conn_t.cursor()
-            # 使用base64字符串的md5
-            songinfo = f"title:{songname}&singer:{singername}&album:{album_name}"
-            info_hash = calculate_md5(songinfo)
-            # 检查hash是否存在
-            check_hash = f"SELECT * FROM api_key WHERE hash = %s"
-            check_value = (info_hash,)
-            cursor.execute(check_hash, check_value)
-            result_hash = cursor.fetchone()
-            if not result_hash:
-                # hash不存在，将歌词插入主表
-                sql_insert = "INSERT INTO api_key (song_name, singer_name, album_name, hash, lyrics) VALUES (%s, %s, %s, %s, %s)"
-                sql_insert_value = (songname, singername, album_name, info_hash, lyrics_encode)
-                cursor.execute(sql_insert, sql_insert_value)
-            # 检查查询词是否存在
-            cursor = conn_t.cursor()
-            query = "SELECT hash FROM search WHERE song_name = %s AND singer_name = %s AND album_name = %s"
-            values = (title, artist, album)
-            cursor.execute(query, values)
-            result_hash_check = cursor.fetchone()
-            if not result_hash_check:
-                # 插入search
-                sql_search_insert = "INSERT INTO search (song_name, singer_name, album_name, hash) VALUES (%s, %s, %s, %s)"
-                sql_search_insert_value = (title, artist, album, info_hash)
-                cursor.execute(sql_search_insert, sql_search_insert_value)
-            conn_t.commit()
-            cursor.close()
-            conn_t.close()
+            with connectsql.connect_to_database() as conn_t:
+                # 使用base64字符串的md5
+                song_info = f"title:{song_name}&singer:{singer_name}&album:{album_name}"
+                info_hash = calculate_md5(song_info)
+                # 检查hash是否存在
+                check_hash = "SELECT * FROM api_key WHERE hash = %s"
+                check_value = (info_hash,)
+                with conn_t.cursor() as cursor:
+                    cursor.execute(check_hash, check_value)
+                    result_hash = cursor.fetchone()
+                    if not result_hash:
+                        # hash不存在，将歌词插入主表
+                        sql_insert = "INSERT INTO api_key (song_name, singer_name, album_name, hash, lyrics) VALUES (" \
+                                     "%s, %s, %s, %s, %s) "
+                        sql_insert_value = (song_name, singer_name, album_name, info_hash, lyrics_encode)
+                        cursor.execute(sql_insert, sql_insert_value)
+                    # 检查查询词是否存在
+                    query = "SELECT hash FROM search WHERE song_name = %s AND singer_name = %s AND album_name = %s"
+                    values = (title, artist, album)
+                    cursor.execute(query, values)
+                    result_hash_check = cursor.fetchone()
+                    if not result_hash_check:
+                        # 插入search
+                        sql_search_insert = "INSERT INTO search (song_name, singer_name, album_name, hash) VALUES (" \
+                                            "%s, %s, %s, %s) "
+                        sql_search_insert_value = (title, artist, album, info_hash)
+                        cursor.execute(sql_search_insert, sql_search_insert_value)
+                conn_t.commit()
             cache_statistics.append(0)
             return "[from:API/200]\n" + lrc_text
     cache_statistics.append(2)

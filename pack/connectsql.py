@@ -1,18 +1,18 @@
-import mysql.connector
+import pymysql
 
 
 def connect_to_database():
-    conn = mysql.connector.connect(
+    db_conn = pymysql.connect(
         host='45.145.228.219',
         user='lrc',
         password='tCTWRiJm7MhSf6JB',
         database='lrc'
     )
-    return conn
+    return db_conn
 
 
-def check_database_structure(conn):
-    cursor = conn.cursor()
+def check_database_structure(checking_conn):
+    cursor = checking_conn.cursor()
 
     # 检查数据库是否为空
     cursor.execute("SHOW TABLES")
@@ -43,7 +43,7 @@ def check_database_structure(conn):
 
         cursor.execute(create_api_key_table)
         cursor.execute(create_search_table)
-        conn.commit()
+        checking_conn.commit()
 
         print("成功创建数据库表结构。")
     else:
