@@ -13,7 +13,6 @@ from collections import deque
 from datetime import datetime
 
 from flask import Flask, request, abort, redirect, send_from_directory, jsonify
-from flask_caching import Cache
 from waitress import serve
 from threading import Thread
 
@@ -47,17 +46,6 @@ data_points = deque(maxlen=24 * 60)  # Assuming data is collected every minute
 cache_statistics = deque([0, 1, 2], maxlen=1000)  # 缓存统计的最大长度
 
 app = Flask(__name__)
-
-app.config['CACHE_TYPE'] = 'filesystem'  # 使用文件系统缓存
-app.config['CACHE_DIR'] = './flask_cache'  # 缓存的目录
-cache = Cache(app)
-
-
-# 缓存键，解决缓存未忽略参数的情况
-def make_cache_key(*args, **kwargs):
-    path = request.path
-    args = str(hash(frozenset(request.args.items())))
-    return path + args
 
 
 def read_file_with_encoding(file_path, encodings):
@@ -254,7 +242,6 @@ def get_lyrics_from_net(title, artist, album):
 
 
 @app.route('/lyrics', methods=['GET'])
-@cache.cached(timeout=86400, key_prefix=make_cache_key)
 def lyrics():
     if not bool(request.args):
         abort(404, "请携带参数访问")
