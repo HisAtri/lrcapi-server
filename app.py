@@ -24,7 +24,8 @@ from pack import wdata
 # Warning检查器
 class WarningHandler(logging.Handler):
     def emit(self, record):
-        if record.levelno == logging.WARNING and "Task queue depth is 2" in record.message:
+        if record.levelno == logging.WARNING and "Task queue depth is" in record.message:
+            app.logger.warning('正在结束进程')
             # 结束进程
             sys.exit()
 
