@@ -53,14 +53,11 @@ app.config['CACHE_DIR'] = './flask_cache'  # 缓存的目录
 cache = Cache(app)
 
 
-# 鉴权函数，在token存在的情况下，对请求进行鉴权
-def require_auth():
-    if token is not False:
-        auth_header = request.headers.get('Authorization', False) or request.headers.get('Authentication', False)
-        if auth_header and auth_header == token:
-            return
-        else:
-            abort(403)
+# 缓存键，解决缓存未忽略参数的情况
+def make_cache_key(*args, **kwargs):
+    path = request.path
+    args = str(hash(frozenset(request.args.items())))
+    return path + args
 
 
 def read_file_with_encoding(file_path, encodings):
@@ -102,8 +99,8 @@ def sql_key_search(song_name, singer_name, album_name):
     if result:
         conn_r.close()
         # 找到对应的lyrics了，结束，返回
-        lyrics = result[0]
-        return lyrics
+        lyrics_db = result[0]
+        return lyrics_db
     else:
         # 未找到对应的歌词，保持连接，尝试使用search表查询
         cursor = conn_r.cursor()
@@ -204,7 +201,6 @@ def refresh_data():
 
 
 # 通过网络接口搜索
-# @cache.memoize(timeout=36000)
 def get_lyrics_from_net(title, artist, album):
     if title is None and artist is None:
         cache_statistics.append(2)
@@ -258,8 +254,10 @@ def get_lyrics_from_net(title, artist, album):
 
 
 @app.route('/lyrics', methods=['GET'])
+@cache.cached(timeout=86400, key_prefix=make_cache_key)
 def lyrics():
-    require_auth()
+    if not bool(request.args):
+        abort(404, "请携带参数访问")
     # 通过request参数获取文件路径
     try:
         # 通过request参数获取音乐Tag

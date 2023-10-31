@@ -61,4 +61,3 @@ def get_github_repo():
             "forks": re_json["forks_count"]
         }
         return repo_info
-
