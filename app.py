@@ -12,7 +12,7 @@ from collections import deque
 from datetime import datetime
 from urllib.parse import unquote_plus
 
-from flask import Flask, request, abort, redirect, send_from_directory, jsonify
+from flask import Flask, request, abort, send_from_directory, jsonify
 from waitress import serve
 from threading import Thread
 
@@ -24,7 +24,7 @@ from pack import wdata
 # Warning检查器
 class WarningHandler(logging.Handler):
     def emit(self, record):
-        if record.levelno == logging.WARNING and "Task queue depth is" in record.message:
+        if "queue" in record.message:
             app.logger.warning('正在结束进程')
             # 结束进程
             sys.exit()
@@ -101,12 +101,12 @@ def sql_key_search(song_name, singer_name, album_name):
                     result_lrc = cursor.fetchone()
 
                     if result_lrc:
+                        app.logger.info("Matching record found in database")
                         return result_lrc[0]
-                    else:
-                        return ""
                 else:
                     app.logger.info("No matching record found.")
                     return ""
+    return ""
 
 
 # 数据库统计
@@ -236,6 +236,7 @@ def get_lyrics_from_net(title, artist, album):
 
 @app.route('/lyrics', methods=['GET'])
 def lyrics():
+    logger.info("request from /lyrics")
     if not bool(request.args):
         abort(404, "请携带参数访问")
     # 通过request参数获取文件路径
@@ -264,7 +265,7 @@ def lyrics():
 
 @app.route('/')
 def redirect_to_welcome():
-    return redirect('/src')
+    return send_from_directory('src', 'index.html')
 
 
 @app.route('/src')
@@ -276,18 +277,20 @@ def return_index():
 def json_api():
     request_args = request.args.get('get')
     if request_args == "data":
+        logger.info("request from /api?data")
         return wdata.load_json()
     elif request_args == "status":
+        logger.info("request from /api?status")
         return jsonify(list(data_points))
-    elif request_args == "github":
-        return wdata.get_github_repo()
     elif request_args == "cache_st":
+        logger.info("request from /api?cache_st")
         return jsonify(list(cache_statistics))
     abort(403)
 
 
 @app.route('/db')
 def show_data():
+    logger.info("request from /db")
     return statistics()
 
 
