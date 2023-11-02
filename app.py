@@ -3,7 +3,6 @@ import base64
 import hashlib
 import logging
 import os
-import sys
 import schedule
 import psutil
 import time
@@ -15,20 +14,11 @@ from urllib.parse import unquote_plus
 from flask import Flask, request, abort, send_from_directory, jsonify
 from waitress import serve
 from threading import Thread
+from werkzeug.serving import make_server
 
 from pack import connectsql
 from pack import api
 from pack import wdata
-
-
-# Warning检查器
-class WarningHandler(logging.Handler):
-    def emit(self, record):
-        if "queue" in record.message:
-            app.logger.warning('正在结束进程')
-            # 结束进程
-            sys.exit()
-
 
 # 检查数据库
 conn_f = connectsql.connect_to_database()
@@ -47,6 +37,15 @@ data_points = deque(maxlen=24 * 60)  # Assuming data is collected every minute
 cache_statistics = deque([0, 1, 2], maxlen=1000)  # 缓存统计的最大长度
 
 app = Flask(__name__)
+
+
+# Warning检查器
+class WarningHandler(logging.Handler):
+    def emit(self, record):
+        if "queue" in record.message:
+            app.logger.warning('正在结束进程')
+            # 结束进程
+            os._exit(0)
 
 
 def read_file_with_encoding(file_path, encodings):
@@ -238,7 +237,7 @@ def get_lyrics_from_net(title, artist, album):
 def lyrics():
     logger.info("request from /lyrics")
     if not bool(request.args):
-        abort(404, "请携带参数访问")
+        return "请携带参数访问", 404
     # 通过request参数获取文件路径
     try:
         # 通过request参数获取音乐Tag
