@@ -313,6 +313,6 @@ if __name__ == '__main__':
     data_thread = Thread(target=record_data)
     data_thread.start()
     # WSGI 生产环境
-    serve(app, host='0.0.0.0', port=args.port)
+    serve(app, host='0.0.0.0', port=args.port, threads=32, channel_timeout=50)
     # Flask 开发调试
     # app.run(host='0.0.0.0', port=args.port)
