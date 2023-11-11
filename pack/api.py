@@ -6,8 +6,7 @@ ua = UserAgent().chrome
 
 
 def kugou(searcher):
-    headers = {
-        'User-Agent': ua, }
+    headers = {'User-Agent': ua, }
     # 第一层Json，要求获得Hash值
     response = requests.get(
         f'http://mobilecdn.kugou.com/api/v3/search/song?format=json&keyword={searcher}&page=1&pagesize=2&showtype=1',
