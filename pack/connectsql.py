@@ -1,4 +1,7 @@
 import pymysql
+import logging
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 def connect_to_database():
@@ -30,24 +33,12 @@ def check_database_structure(checking_conn):
             lyrics LONGTEXT
         )
         """
-
-        create_search_table = """
-        CREATE TABLE search (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            song_name TEXT,
-            singer_name TEXT,
-            album_name TEXT,
-            hash TEXT
-        )
-        """
-
         cursor.execute(create_api_key_table)
-        cursor.execute(create_search_table)
         checking_conn.commit()
 
-        print("成功创建数据库表结构。")
+        logging.info("成功创建数据库表结构")
     else:
-        print("数据库已存在，跳过创建表结构。")
+        logging.info("数据库已存在，跳过创建表结构")
 
     cursor.close()
 
