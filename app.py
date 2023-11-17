@@ -20,6 +20,9 @@ from pack import wdata
 
 from pack.search import sql_key_search
 
+from requests.exceptions import ChunkedEncodingError
+from urllib3.exceptions import ProtocolError
+
 # 检查数据库
 conn_f = connectsql.connect_to_database()
 connectsql.check_database_structure(conn_f)
@@ -178,6 +181,12 @@ def lyrics():
     try:
         # 查询外部API与数据库
         lyrics_os = get_lyrics(title, artist, album)
+    except ChunkedEncodingError as e:
+        try:
+            lyrics_os = get_lyrics(title, artist, album)
+        except Exception as e:
+            app.logger.error("Unable to get lyrics." + str(e))
+            lyrics_os = None
     except Exception as e:
         app.logger.error("Unable to get lyrics." + str(e))
         lyrics_os = None
