@@ -175,12 +175,12 @@ def lyrics():
         app.logger.error("Unable to get song tags." + str(e))
         title, artist, album = None, None, None
 
-    #try:
+    try:
         # 查询外部API与数据库
-    lyrics_os = get_lyrics(title, artist, album)
-    #except Exception as e:
-        #app.logger.error("Unable to get lyrics." + str(e))
-        #lyrics_os = None
+        lyrics_os = get_lyrics(title, artist, album)
+    except Exception as e:
+        app.logger.error("Unable to get lyrics." + str(e))
+        lyrics_os = None
     if lyrics_os is not None:
         return lyrics_os
 
