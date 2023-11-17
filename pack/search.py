@@ -69,7 +69,8 @@ def sql_key_search(song_name, singer_name, album_name):
                     ar_ratio = textcompare.association(singer_name, item_artist)
                     al_ratio = textcompare.association(album_name, item_album)
                     conform_ratio = ((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
-                    if conform_ratio >= 0.2:
+                    # print(song_name, item_title, ti_ratio, singer_name, item_artist, ar_ratio, conform_ratio)
+                    if conform_ratio >= 0.4 and ti_ratio > 0.4 and ar_ratio > 0.2:
                         item_list.append({
                             "lyrics": item_dict["lyrics"],
                             "ratio": conform_ratio
@@ -80,3 +81,6 @@ def sql_key_search(song_name, singer_name, album_name):
             else:
                 logging.info("No matching record found.")
                 return ""
+
+if __name__ == "__main__":
+    print(sql_key_search("不要说话", "陈奕迅", ""))

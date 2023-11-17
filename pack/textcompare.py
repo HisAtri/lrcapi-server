@@ -54,6 +54,6 @@ def zero_item(text: str) -> str:
 
 
 if __name__ == "__main__":
-    text_s = "第二天堂(DJ林)"
-    text_r = "第二天堂（DJ林）"
+    text_s = ""
+    text_r = ""
     print(association(text_s, text_r))
