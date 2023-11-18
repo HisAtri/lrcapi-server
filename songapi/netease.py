@@ -11,8 +11,8 @@ def search(title, artist, album):
     result_list = []
     limit = 5
     headers = {'User-Agent': ua, }
-    # api_url = "http://127.0.0.1:3373"
-    api_url = "https://ne.eh.cx"
+    api_url = "http://127.0.0.1:3373"
+    #api_url = "https://ne.eh.cx"
     response = requests.get(f"{api_url}/search?keywords={title} {artist} {album}", headers=headers)
     result = response.json()
     if result == {"result": {"songCount": 0}, "code": 200}:

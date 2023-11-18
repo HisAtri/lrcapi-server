@@ -13,7 +13,7 @@ def search_content(title, artist, album):
         try:
             result = func.search(title, artist, album)
         except Exception as e:
-            logger.info(f"{name} requests failed with error", e)
+            logger.info(f"{name} requests failed with error", str(e))
             result = None
         if result:
             return result
