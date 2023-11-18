@@ -166,3 +166,4 @@ flask_cache/
 test.py
 .idea/
 data/
+config/

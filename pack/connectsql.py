@@ -1,7 +1,8 @@
 import pymysql
 import logging
+from pack.config import cfg
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 
 def connect_to_database():

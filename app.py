@@ -21,7 +21,8 @@ from pack import wdata
 from pack.search import sql_key_search
 
 from requests.exceptions import ChunkedEncodingError
-from urllib3.exceptions import ProtocolError
+from pack.config import cfg
+
 
 # 检查数据库
 conn_f = connectsql.connect_to_database()
@@ -34,8 +35,6 @@ parser = argparse.ArgumentParser(description="启动LRC-API服务器")
 parser.add_argument('--port', type=int, default=28884, help='应用的运行端口，默认28884')
 parser.add_argument('--auth', type=str, help='用于验证Header.Authentication字段，建议纯ASCII字符')
 args = parser.parse_args()
-# 赋值到token，启动参数优先性最高，其次环境变量，如果都未定义则赋值为false
-token = args.auth if args.auth is not None else os.environ.get('API_AUTH', False)
 data_points = deque(maxlen=24 * 60)  # Assuming data is collected every minute
 cache_statistics = deque([0, 1, 2], maxlen=1000)  # 缓存统计的最大长度
 
