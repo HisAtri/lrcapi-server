@@ -11,4 +11,4 @@ A Flask API For [StreamMusic](https://github.com/gitbobobo/StreamMusic)
 
 由于与个人部署服务端差异较大，单独设立仓库。
 
-![logo](/src/img/Logo_Text_small.svg)
+![logo](/src/img/Logo_Text_inbox.png)
