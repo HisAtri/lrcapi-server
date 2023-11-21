@@ -7,9 +7,8 @@ from pack.search import write_sql
 ua = UserAgent().chrome
 
 
-def search(title, artist, album):
+def search(title, artist, album, limit=5):
     result_list = []
-    limit = 5
     headers = {'User-Agent': ua, }
     api_url = "http://127.0.0.1:3373"
     # api_url = "https://ne.eh.cx"

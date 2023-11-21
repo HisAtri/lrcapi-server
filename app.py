@@ -14,7 +14,7 @@ from flask import Flask, request, abort, send_from_directory, jsonify
 from waitress import serve
 from threading import Thread
 
-from pack import connectsql
+from pack import connectsql, textcompare
 from pack import api
 from pack import wdata
 from pack import log
@@ -145,6 +145,9 @@ def get_lyrics(title, artist, album):
 
     # 从数据库查询
     sql_search = sql_key_search(title, artist, album)
+    if not sql_search:
+        converted_title = textcompare.text_convert(title)
+        sql_search = sql_key_search(converted_title, artist, album)
     if sql_search:
         lrc_encode = sql_search[0].get("lyrics", "")
         sql_lrc = base64.b64decode(lrc_encode).decode('utf-8')

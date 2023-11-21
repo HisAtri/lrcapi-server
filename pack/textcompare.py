@@ -1,5 +1,19 @@
 import Levenshtein
 import math
+import re
+
+
+def text_convert(text: str):
+    patterns = [
+        r"(?<!^)\([^)]+?\)",
+        r"(?<!^)（[^)]+?）",
+        r"\s+$",    # 句末空格
+    ]
+
+    for pattern in patterns:
+        text_re = re.sub(pattern, '', text)
+        text = text_re if len(text_re) else text
+    return text
 
 
 # 最长匹配字段
@@ -40,7 +54,7 @@ def association(text_1: str, text_2: str) -> float:
         return 0
     common_ratio = longest_common_substring(text_1, text_2) / len(text_1)
     ed_ratio = Levenshtein.ratio(text_1, text_2)
-    similar_ratio = common_ratio * (math.e ** (ed_ratio-1))
+    similar_ratio = common_ratio * (math.e ** (ed_ratio - 1))
     return similar_ratio
 
 
@@ -54,6 +68,6 @@ def zero_item(text: str) -> str:
 
 
 if __name__ == "__main__":
-    text_s = ""
-    text_r = ""
+    text_s = "aaaa"
+    text_r = "aaaa"
     print(association(text_s, text_r))
