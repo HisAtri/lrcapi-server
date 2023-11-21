@@ -14,6 +14,12 @@
             text-align: center;
         }
 
+        .object-container {
+            display: inline-block;
+            width: 1em;
+            height: 1em;
+        }
+
         code {
             display: inline-block;
             padding: 4px;
@@ -30,7 +36,7 @@
             background-color: rgba(255, 255, 255, 0.5);
             border-radius: 10px;
             position: fixed;
-            top: 50%;
+            top: 45%;
             left: 50%;
             transform: translate(-50%, -50%);
             overflow: hidden;
@@ -132,7 +138,7 @@
 </head>
 
 <body>
-    <h1>LrcApi-公开接口</h1>
+    <h1><span class="object-container"><img class="svg-image" src="/src/img/Logo_Design.svg" alt="External SVG"/></span>LrcApi-公开接口</h1>
     <div class="blurry-box">
         <h4>歌词API地址：</h4>
         <code id="api_url">http://localhost/lyrics</code>
@@ -156,7 +162,7 @@
         <div id="status">- -ms</div>
     </div>
     <div class="footer">
-        &copy; 2023 LyricsAPI | <a href="https://github.com/HisAtri/LrcApi">Github</a> |  
+        &copy; 2023 LyricsAPI | <a href="https://github.com/HisAtri/LrcApi">Github</a> |
         <br>
         <a href="https://github.com/HisAtri/LrcApi/blob/main/LICENSE" class="Link--muted"
             data-analytics-event="{&quot;category&quot;:&quot;Repository Overview&quot;,&quot;action&quot;:&quot;click&quot;,&quot;label&quot;:&quot;location:sidebar;file:license&quot;}">
@@ -171,6 +177,8 @@
         2023/11/1 重构MySQL逻辑，解决死锁问题。
         <br>
         <a href="https://afdian.net/a/hisatri">->赞助一下作者<-</a>
+        <br>
+        <img class="svg-image" src="/src/img/Logo_Text.svg" width="64" height="64" alt="External SVG"/>
     </div>
     <script>
         var cDomain = window.location.protocol + '//' + window.location.hostname + '/lyrics';

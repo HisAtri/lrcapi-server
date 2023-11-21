@@ -17,6 +17,7 @@ from threading import Thread
 from pack import connectsql
 from pack import api
 from pack import wdata
+from pack import log
 
 from pack.search import sql_key_search
 
@@ -163,7 +164,9 @@ def get_lyrics(title, artist, album):
 @app.route('/lyrics', methods=['GET'])
 def lyrics():
     logger.info("request from /lyrics")
-    if not bool(request.args):
+    query_string = unquote_plus(request.query_string.decode('utf-8'))
+    if not query_string:
+        log.write("None", 404)
         return "请携带参数访问", 404
     # 通过request参数获取文件路径
     try:
@@ -190,14 +193,20 @@ def lyrics():
         app.logger.error("Unable to get lyrics." + str(e))
         lyrics_os = None
     if lyrics_os is not None:
+        log.write(query_string, 200)
         return lyrics_os
-
+    log.write(query_string, 404)
     return "未找到匹配的歌词", 404
 
 
 @app.route('/')
 def redirect_to_welcome():
     return send_from_directory('src', 'index.html')
+
+
+@app.route('/favicon.ico')
+def favicon():
+    return send_from_directory('src', 'img/Logo_Design.svg')
 
 
 @app.route('/src')

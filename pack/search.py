@@ -42,8 +42,8 @@ def write_sql(lyrics_encode: str, song_name: str, singer_name: str, album_name: 
 # 在key索引中进行搜索
 # 搜索次序为关键词搜索主表-关键词搜索副表hash查主表-API搜索后写入
 def sql_key_search(song_name, singer_name, album_name):
-    title_0 = "%"+textcompare.zero_item(song_name)+"%" if song_name else "%"
-    singer_0 = "%"+textcompare.zero_item(singer_name)+"%" if singer_name else "%"
+    title_0 = "%" + textcompare.zero_item(song_name) + "%" if song_name else "%"
+    singer_0 = "%" + textcompare.zero_item(singer_name) + "%" if singer_name else "%"
     logging.info("从数据库查找")
     with connectsql.connect_to_database() as conn_r:
         with conn_r.cursor() as cursor:
@@ -76,11 +76,12 @@ def sql_key_search(song_name, singer_name, album_name):
                             "ratio": conform_ratio
                         })
                 # 以键“ratio”为准，进行排序
-                sort_list = sorted(item_list, key=lambda x: 1-x["ratio"])
+                sort_list = sorted(item_list, key=lambda x: 1 - x["ratio"])
                 return sort_list
             else:
                 logging.info("No matching record found.")
                 return ""
+
 
 if __name__ == "__main__":
     print(sql_key_search("不要说话", "陈奕迅", ""))
