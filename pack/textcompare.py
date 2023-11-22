@@ -52,6 +52,8 @@ def association(text_1: str, text_2: str) -> float:
         return 0.5
     if text_2 == '':
         return 0
+    text_1 = text_1.lower()
+    text_2 = text_2.lower()
     common_ratio = longest_common_substring(text_1, text_2) / len(text_1)
     ed_ratio = Levenshtein.ratio(text_1, text_2)
     similar_ratio = common_ratio * (math.e ** (ed_ratio - 1))

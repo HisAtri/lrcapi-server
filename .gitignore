@@ -167,4 +167,5 @@ test.py
 .idea/
 data/
 config/
+spider/
 log.txt

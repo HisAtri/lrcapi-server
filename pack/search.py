@@ -20,6 +20,7 @@ def calculate_md5(string):
 
 # 将值插入SQL，包括base64编码的歌词文本；歌曲名；歌手名；专辑名
 def write_sql(lyrics_encode: str, song_name: str, singer_name: str, album_name: str):
+    new = False
     with connectsql.connect_to_database() as conn_t:
         # 使用查询字符串的md5
         song_info = f"title:{song_name}&singer:{singer_name}&album:{album_name}"
@@ -31,12 +32,28 @@ def write_sql(lyrics_encode: str, song_name: str, singer_name: str, album_name: 
             cursor.execute(check_hash, check_value)
             result_hash = cursor.fetchone()
             if not result_hash:
+                new = True
                 # hash不存在，将歌词插入主表
                 sql_insert = "INSERT INTO api_key (song_name, singer_name, album_name, hash, lyrics) VALUES (" \
                              "%s, %s, %s, %s, %s) "
                 sql_insert_value = (song_name, singer_name, album_name, info_hash, lyrics_encode)
                 cursor.execute(sql_insert, sql_insert_value)
         conn_t.commit()
+    return new
+
+
+def in_sql(title="", artist="", album=""):
+    info_hash = calculate_md5(f"title:{title}&singer:{artist}&album:{album}")
+    check_hash = "SELECT * FROM api_key WHERE hash = %s"
+    check_value = (info_hash,)
+    with connectsql.connect_to_database() as conn_t:
+        with conn_t.cursor() as cursor:
+            cursor.execute(check_hash, check_value)
+            result_hash = cursor.fetchone()
+            if not result_hash:
+                return True
+            else:
+                return False
 
 
 # 在key索引中进行搜索

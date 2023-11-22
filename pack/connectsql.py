@@ -34,7 +34,20 @@ def check_database_structure(checking_conn):
             lyrics LONGTEXT
         )
         """
+
+        create_album_cover_table = """
+        CREATE TABLE album_cover (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            album TEXT,
+            artists TEXT,
+            hash VARCHAR(255) UNIQUE,
+            cover_id TEXT,
+            cover_url TEXT
+        )
+        """
+
         cursor.execute(create_api_key_table)
+        cursor.execute(create_album_cover_table)
         checking_conn.commit()
 
         logging.info("成功创建数据库表结构")
