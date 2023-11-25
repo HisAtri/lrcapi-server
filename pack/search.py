@@ -44,6 +44,7 @@ def write_sql(lyrics_encode: str, song_name: str, singer_name: str, album_name: 
 
 def in_sql(title="", artist="", album=""):
     info_hash = calculate_md5(f"title:{title}&singer:{artist}&album:{album}")
+    print(info_hash)
     check_hash = "SELECT * FROM api_key WHERE hash = %s"
     check_value = (info_hash,)
     with connectsql.connect_to_database() as conn_t:
@@ -51,9 +52,9 @@ def in_sql(title="", artist="", album=""):
             cursor.execute(check_hash, check_value)
             result_hash = cursor.fetchone()
             if not result_hash:
-                return True
-            else:
                 return False
+            else:
+                return True
 
 
 # 在key索引中进行搜索
@@ -83,11 +84,11 @@ def sql_key_search(song_name, singer_name, album_name):
                     item_artist = item_dict["singer_name"]
                     item_album = item_dict["album_name"]
                     ti_ratio = textcompare.association(song_name, item_title)
-                    ar_ratio = textcompare.association(singer_name, item_artist)
+                    ar_ratio = textcompare.assoc_artists(singer_name, item_artist)
                     al_ratio = textcompare.association(album_name, item_album)
                     conform_ratio = ((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                     # print(song_name, item_title, ti_ratio, singer_name, item_artist, ar_ratio, conform_ratio)
-                    if conform_ratio >= 0.4 and ti_ratio > 0.4 and ar_ratio > 0.2:
+                    if conform_ratio >= 0.2 and ti_ratio > 0.2 and ar_ratio > 0.2:
                         item_list.append({
                             "lyrics": item_dict["lyrics"],
                             "ratio": conform_ratio

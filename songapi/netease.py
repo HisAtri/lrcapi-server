@@ -24,7 +24,7 @@ def search(title, artist, album, limit=5):
         album_name = song_info["album"]["name"]
         song_id = song_info["id"]
         title_conform_ratio = textcompare.association(title, song_name)
-        artist_conform_ratio = textcompare.association(artist, singer_name)
+        artist_conform_ratio = textcompare.assoc_artists(artist, singer_name)
         # 计算两个指标的几何平均值；区间范围(0,1]
         ratio = (title_conform_ratio * artist_conform_ratio) ** 0.5
         if ratio >= 0.2:
