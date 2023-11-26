@@ -40,12 +40,20 @@ def load_config():
                 "port": 3306,
                 "db_name": "lyrics",
                 "db_user": "lyrics",
-                "password": "",
+                "password": "password",
             },
             'password': 'password123',
             'host': 'localhost',
             'port': 8080
         }
+        if not os.path.exists(".docker"):
+            config_default['mysql_connection'] = {
+                "host": "mysql-lyrics",
+                "port": 3306,
+                "db_name": "lyrics",
+                "db_user": "lyrics",
+                "password": "password",
+            }
 
         with open(config_file, 'w') as f:
             json.dump(config_default, f, indent=4)  # indent格式化为可读性更好的JSON

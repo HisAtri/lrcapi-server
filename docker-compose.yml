@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+  mysql:
+    image: mysql:5.7.30
+    container_name: mysql-lyrics
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: lyrics
+      MYSQL_USER: lyrics
+      MYSQL_PASSWORD: password
+    # ports:
+    #   - "3306:3306"
+    networks:
+      - lrc-db-net
+
+  main_program:
+    image: hisatri/lyricapi:server
+    container_name: lyricapi-server
+    restart: always
+    networks:
+      - lrc-db-net
+    ports:
+      - "28884:28884"
+    volumes:
+      - /program/lrc-server/config:/app/config
+      - /program/lrc-server/log:/app/log
+
+networks:
+  lrc-db-net:
+    driver: bridge
