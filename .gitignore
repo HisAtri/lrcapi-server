@@ -170,3 +170,4 @@ config/
 spider/
 log/
 log.txt
+update.sh
