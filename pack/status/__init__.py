@@ -19,24 +19,24 @@ def record_data():
         cpu_percent = psutil.cpu_percent()
         current_bandwidth = psutil.net_io_counters()
         memory = psutil.virtual_memory().percent
-        timestamp = datetime.now()
+        time_str = datetime.now()
 
         if last_bandwidth is not None:
             delta_bandwidth = {
-                'bytes_sent': current_bandwidth.bytes_sent - last_bandwidth.bytes_sent,
-                'bytes_recv': current_bandwidth.bytes_recv - last_bandwidth.bytes_recv
+                's': current_bandwidth.bytes_sent - last_bandwidth.bytes_sent,
+                'r': current_bandwidth.bytes_recv - last_bandwidth.bytes_recv
             }
         else:
             delta_bandwidth = {
-                'bytes_sent': 0,
-                'bytes_recv': 0
+                's': 0,
+                'r': 0
             }
 
         data_points.append({
-            'timestamp': timestamp,
-            'cpu_percent': cpu_percent,
-            'bandwidth': delta_bandwidth,
-            'memory': memory
+            'time': time_str,
+            'c': cpu_percent,
+            'b': delta_bandwidth,
+            'm': memory
         })
 
         last_bandwidth = current_bandwidth

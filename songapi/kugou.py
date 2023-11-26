@@ -2,9 +2,7 @@ import base64
 import requests
 from fake_useragent import UserAgent
 
-import app
 from pack import textcompare
-
 from pack.search import write_sql
 
 ua = UserAgent().chrome

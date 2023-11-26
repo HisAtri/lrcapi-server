@@ -290,7 +290,7 @@
             function updateChartData() {
                 $.getJSON('/api?get=status', function (data) {
                     var labels = data.map(function (point) {
-                        var time = new Date(point.timestamp);
+                        var time = new Date(point.time);
                         var hour_z = (time.getHours() + 16) % 24;
                         var hours = hour_z.toString().padStart(2, '0');
                         var minutes = time.getMinutes().toString().padStart(2, '0');
@@ -300,20 +300,20 @@
                     // Update usage chart
                     usageChart.data.labels = labels;
                     usageChart.data.datasets[0].data = data.map(function (point) {
-                        return point.cpu_percent;
+                        return point.c;
                     });
                     usageChart.data.datasets[1].data = data.map(function (point) {
-                        return point.memory;
+                        return point.m;
                     });
                     usageChart.update();
 
                     // Update bandwidth chart
                     bandwidthChart.data.labels = labels;
                     bandwidthChart.data.datasets[0].data = data.map(function (point) {
-                        return bytesToMegabytes(point.bandwidth.bytes_sent);
+                        return bytesToMegabytes(point.b.s);
                     });
                     bandwidthChart.data.datasets[1].data = data.map(function (point) {
-                        return bytesToMegabytes(point.bandwidth.bytes_recv);
+                        return bytesToMegabytes(point.b.r);
                     });
                     bandwidthChart.update();
                 });

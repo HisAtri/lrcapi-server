@@ -59,4 +59,3 @@ def check_database_structure(checking_conn):
 
 if __name__ == "__main__":
     conn = connect_to_database()
-    check_database_structure(conn)
