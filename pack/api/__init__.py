@@ -6,7 +6,7 @@
 接收并返回各个API模块search()方法返回的LRC原始文本字符串
 返回值为等价False（None或空str）代表所有API都没有获取到
 """
-from songapi import netease, kugou
+from pack.api import kugou, netease
 from pack import textcompare
 import logging
 

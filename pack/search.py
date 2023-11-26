@@ -88,7 +88,7 @@ def sql_key_search(song_name, singer_name, album_name):
                     al_ratio = textcompare.association(album_name, item_album)
                     conform_ratio = ((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                     # print(song_name, item_title, ti_ratio, singer_name, item_artist, ar_ratio, conform_ratio)
-                    if conform_ratio >= 0.2 and ti_ratio > 0.2 and ar_ratio > 0.2:
+                    if conform_ratio >= 0.3 and ti_ratio > 0.3 and ar_ratio > 0.3:
                         item_list.append({
                             "lyrics": item_dict["lyrics"],
                             "song_name": item_title,
