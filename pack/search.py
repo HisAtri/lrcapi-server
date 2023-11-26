@@ -91,6 +91,8 @@ def sql_key_search(song_name, singer_name, album_name):
                     if conform_ratio >= 0.2 and ti_ratio > 0.2 and ar_ratio > 0.2:
                         item_list.append({
                             "lyrics": item_dict["lyrics"],
+                            "song_name": item_title,
+                            "singer_name": item_artist,
                             "ratio": conform_ratio
                         })
                 # 以键“ratio”为准，进行排序

@@ -13,7 +13,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def search_content(title: str, artist: str, album: str) -> any:
+def search_content(title: str, artist: str, album: str) -> list:
     api_list = {
         "kugou": kugou,
         "netease": netease
@@ -36,5 +36,4 @@ def search_content(title: str, artist: str, album: str) -> any:
             if result:
                 return result
 
-
-    return None
+    return []

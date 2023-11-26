@@ -168,4 +168,5 @@ test.py
 data/
 config/
 spider/
+log/
 log.txt
