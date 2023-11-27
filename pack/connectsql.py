@@ -1,16 +1,17 @@
 import pymysql
 import logging
-from pack.config import cfg
+from pack.read_config import cfg
 
 logger = logging.getLogger(__name__)
 
 
 def connect_to_database():
     db_conn = pymysql.connect(
-        host='45.145.228.219',
-        user='lrc',
-        password='tCTWRiJm7MhSf6JB',
-        database='lrc'
+        host=cfg.MySQL.host,
+        port=cfg.MySQL.port,
+        user=cfg.MySQL.user,
+        password=cfg.MySQL.password,
+        database=cfg.MySQL.name
     )
     return db_conn
 
@@ -36,13 +37,18 @@ def check_database_structure(checking_conn):
         """
 
         create_album_cover_table = """
-        CREATE TABLE album_cover (
+        CREATE TABLE api_img (
             id INT AUTO_INCREMENT PRIMARY KEY,
+            music TEXT,
+            artist TEXT,
             album TEXT,
-            artists TEXT,
             hash VARCHAR(255) UNIQUE,
-            cover_id TEXT,
-            cover_url TEXT
+            mu_id TEXT,
+            mu_url TEXT,
+            al_id TEXT,
+            al_url TEXT,
+            ar_id TEXT,
+            ar_url TEXT
         )
         """
 

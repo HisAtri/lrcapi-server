@@ -4,7 +4,7 @@ import logging
 import os
 
 from urllib.parse import unquote_plus
-from flask import Flask, request, abort, send_from_directory, jsonify
+from flask import Flask, request, abort, send_from_directory, jsonify, redirect
 from waitress import serve
 from threading import Thread
 
@@ -14,7 +14,7 @@ from pack import wdata
 from pack import log
 from pack import status
 
-from pack.search import sql_key_search
+from pack.search import sql_key_search, sql_img_search
 
 from requests.exceptions import ChunkedEncodingError
 
@@ -125,8 +125,32 @@ def lyrics():
     return "未找到匹配的歌词", 404
 
 
+@app.route('/cover')
+def cover_api():
+    # 此API所有参数支持为空，但是全部同时为空返回404
+    title = unquote_plus(request.args.get('title', ''))
+    artist = unquote_plus(request.args.get('artist', ''))
+    album = unquote_plus(request.args.get('album', ''))
+    if not any((title, artist, album)):
+        return "请携带参数访问", 404
+    mod = 0 if title else (1 if album else 2)
+    logger.info(mod)
+    # 通过数据库查询
+    sort_list = sql_img_search(title=title, album=album, artist=artist, mod=mod)
+    if sort_list:
+        # 解包
+        result_id, result_url = sort_list[0]['item']
+    else:
+        # 数据库无数据
+        result_url = api.search_cover(title=title, album=album, artist=artist, mod=mod)
+    if result_url:
+        return redirect(result_url, 302)
+    else:
+        return "未找到匹配的歌词", 404
+
+
 @app.route('/')
-def redirect_to_welcome():
+def index_page():
     return send_from_directory('src', 'index.html')
 
 

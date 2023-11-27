@@ -103,5 +103,104 @@ def sql_key_search(song_name, singer_name, album_name):
                 return ""
 
 
+def sql_img_search(title: str, artist: str, album: str, mod=0):
+    """
+        mod->
+        0: 歌曲cover
+        1：专辑cover
+        2：艺术家cover
+    """
+    title_0 = "%" + textcompare.zero_item(title) + "%" if title else "%"
+    singer_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
+    album_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
+    logging.info("从数据库查找")
+    with connectsql.connect_to_database() as conn_r:
+        with conn_r.cursor() as cursor:
+            match mod:
+                case 0:
+                    query = "SELECT * FROM api_img WHERE music LIKE %s AND artist LIKE %s"
+                    values = (title_0, singer_0)
+                case 1:
+                    query = "SELECT * FROM api_img WHERE album LIKE %s AND artist LIKE %s"
+                    values = (album_0, singer_0)
+                case 2:
+                    query = "SELECT * FROM api_img WHERE artist LIKE %s"
+                    values = (singer_0,)
+                case _:
+                    raise ValueError("错误的模式，只允许0,1,2")
+            cursor.execute(query, values)
+            result_all = cursor.fetchall()
+    if result_all:
+        item_list = []
+        for item in result_all:
+            item_dict = {
+                "id": item[0],
+                "music": item[1],
+                "artist": item[2],
+                "album": item[3],
+                "mu_id": item[5],
+                "mu_url": item[6],
+                "al_id": item[7],
+                "al_url": item[8],
+                "ar_id": item[9],
+                "ar_url": item[10]
+            }
+            item_title = item_dict["music"]
+            item_artist = item_dict["artist"]
+            item_album = item_dict["album"]
+            match mod:
+                # 判断好请求的类型
+                # 同时计算相似度
+                # key为元组，同时包含ID和URL
+                case 0:
+                    key = (item_dict["mu_id"], item_dict["mu_url"])
+                    ti_ratio = textcompare.association(title, item_title)
+                    ar_ratio = textcompare.assoc_artists(artist, item_artist)
+                    al_ratio = textcompare.association(album, item_album)
+                    conform_ratio = (lambda x: x if x >= 0.3 else 0)((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
+                case 1:
+                    key = (item_dict["al_id"], item_dict["al_url"])
+                    ar_ratio = textcompare.assoc_artists(artist, item_artist)
+                    al_ratio = textcompare.association(album, item_album)
+                    conform_ratio = (lambda x: x if x >= 0.3 else 0)((ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
+                case 2:
+                    key = (item_dict["ar_id"], item_dict["ar_url"])
+                    conform_ratio = (lambda x: x if x >= 0.5 else 0)(textcompare.assoc_artists(artist, item_artist))
+                case _:
+                    raise ValueError("错误的模式，只允许0,1,2")
+            item_list.append({
+                "item": key,
+                "ratio": conform_ratio
+            })
+            sort_list = sorted(item_list, key=lambda x: 1 - x["ratio"])
+            return sort_list
+    else:
+        logging.info("No matching record found.")
+        return ""
+
+
+def write_img(title: str, artist: str, album: str, mu_id, mu_url, al_id, al_url, ar_id, ar_url):
+    new = False
+    with connectsql.connect_to_database() as conn_t:
+        # 使用查询字符串的md5
+        song_info = f"title:{title}&singer:{artist}&album:{album}"
+        info_hash = calculate_md5(song_info)
+        # 检查hash是否存在
+        check_hash = "SELECT * FROM api_img WHERE hash = %s"
+        check_value = (info_hash,)
+        with conn_t.cursor() as cursor:
+            cursor.execute(check_hash, check_value)
+            result_hash = cursor.fetchone()
+            # 不存在此内容，插入数据
+            if not result_hash:
+                new = True
+                sql_insert = "INSERT INTO api_img (music, artist, album, hash, mu_id, mu_url, al_id, al_url, ar_id, " \
+                             "ar_url) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
+                sql_insert_value = (title, artist, album, info_hash, mu_id, mu_url, al_id, al_url, ar_id, ar_url)
+                cursor.execute(sql_insert, sql_insert_value)
+        conn_t.commit()
+    return new
+
+
 if __name__ == "__main__":
-    print(sql_key_search("不要说话", "陈奕迅", ""))
+    print(sql_img_search("", "谢安琪", "", mod=2))

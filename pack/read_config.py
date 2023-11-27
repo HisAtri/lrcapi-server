@@ -28,32 +28,35 @@ def load_config():
         os.makedirs(config_dir)
 
     if not os.path.exists(config_file):
+        logger.info("未找到配置文件，正在创建默认配置")
         # 文件不存在，写入默认配置
         config_default = {
-            'server': {
-                'host': '0.0.0.0',
-                'port': 28884,
-            },
-            'db': 'MySQL',
-            'mysql_connection': {
-                "host": "localhost",
+            "db": "MySQL",
+            "MySQL": {
+                "host": "127.0.0.1",
                 "port": 3306,
-                "db_name": "lyrics",
-                "db_user": "lyrics",
-                "password": "password",
+                "name": "lrc",
+                "user": "lrc",
+                "password": "password"
             },
-            'password': 'password123',
-            'host': 'localhost',
-            'port': 8080
-        }
-        if not os.path.exists(".docker"):
-            config_default['mysql_connection'] = {
-                "host": "mysql-lyrics",
-                "port": 3306,
-                "db_name": "lyrics",
-                "db_user": "lyrics",
-                "password": "password",
+            "api": {
+                "netease": {
+                    "type": "netease_cloudmusic_api",
+                    "url": "http://127.0.0.1"
+                }
+            },
+            "fss": {
+                "type": "WebDav",
+                "WebDav": {
+                    "url": "https://web.dav/dav/",
+                    "username": "username",
+                    "password": "password"
+                },
+                "Local": {
+                    "path": "/disk1/storage/api/"
+                }
             }
+        }
 
         with open(config_file, 'w') as f:
             json.dump(config_default, f, indent=4)  # indent格式化为可读性更好的JSON

@@ -37,3 +37,8 @@ def search_content(title: str, artist: str, album: str) -> list:
                 return result
 
     return []
+
+
+def search_cover(title: str, artist: str, album: str, mod: int) -> str:
+    result = netease.cover(title=title, artist=artist, album=album, mod=mod)
+    return result
