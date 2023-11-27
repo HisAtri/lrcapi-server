@@ -105,11 +105,25 @@ def sql_key_search(song_name, singer_name, album_name):
 
 def sql_img_search(title: str, artist: str, album: str, mod=0):
     """
-        mod->
-        0: 歌曲cover
-        1：专辑cover
-        2：艺术家cover
+    mod->
+    0: 歌曲cover
+    1：专辑cover
+    2：艺术家cover
     """
+    def get_pic(_table: str, _id):
+        with connectsql.connect_to_database() as conn_g:
+            with conn_g.cursor() as cursor_g:
+                query_g = f"SELECT * FROM {conn_g.escape_string(_table)} WHERE ne_id = %s"
+                values_g = (_id,)
+                cursor_g.execute(query_g, values_g)
+                columns = [desc[0] for desc in cursor_g.description]
+                result = cursor_g.fetchone()
+                if result:
+                    # 使用列表推导式将结果转换为字典
+                    result_dict = {columns[i]: value for i, value in enumerate(result)}
+                    return result_dict["ne_url"]
+        return None
+
     title_0 = "%" + textcompare.zero_item(title) + "%" if title else "%"
     singer_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
     album_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
@@ -139,11 +153,8 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                 "artist": item[2],
                 "album": item[3],
                 "mu_id": item[5],
-                "mu_url": item[6],
-                "al_id": item[7],
-                "al_url": item[8],
-                "ar_id": item[9],
-                "ar_url": item[10]
+                "al_id": item[6],
+                "ar_id": item[7]
             }
             item_title = item_dict["music"]
             item_artist = item_dict["artist"]
@@ -153,25 +164,26 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                 # 同时计算相似度
                 # key为元组，同时包含ID和URL
                 case 0:
-                    key = (item_dict["mu_id"], item_dict["mu_url"])
+                    key = (item_dict["mu_id"], get_pic("api_img_mu", item_dict["mu_id"]))
                     ti_ratio = textcompare.association(title, item_title)
                     ar_ratio = textcompare.assoc_artists(artist, item_artist)
                     al_ratio = textcompare.association(album, item_album)
                     conform_ratio = (lambda x: x if x >= 0.3 else 0)((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                 case 1:
-                    key = (item_dict["al_id"], item_dict["al_url"])
+                    key = (item_dict["al_id"], get_pic("api_img_al", item_dict["al_id"]))
                     ar_ratio = textcompare.assoc_artists(artist, item_artist)
                     al_ratio = textcompare.association(album, item_album)
                     conform_ratio = (lambda x: x if x >= 0.3 else 0)((ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                 case 2:
-                    key = (item_dict["ar_id"], item_dict["ar_url"])
-                    conform_ratio = (lambda x: x if x >= 0.5 else 0)(textcompare.assoc_artists(artist, item_artist))
+                    key = (item_dict["ar_id"], get_pic("api_img_ar", item_dict["ar_id"]))
+                    conform_ratio = (lambda x: x if x > 0.8 else 0)(textcompare.assoc_artists(artist, item_artist))
                 case _:
                     raise ValueError("错误的模式，只允许0,1,2")
-            item_list.append({
-                "item": key,
-                "ratio": conform_ratio
-            })
+            if key[1]:
+                item_list.append({
+                    "item": key,
+                    "ratio": conform_ratio
+                })
             sort_list = sorted(item_list, key=lambda x: 1 - x["ratio"])
             return sort_list
     else:
@@ -179,7 +191,7 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
         return ""
 
 
-def write_img(title: str, artist: str, album: str, mu_id, mu_url, al_id, al_url, ar_id, ar_url):
+def write_img(title: str, artist: str, album: str, mu_id='', mu_url='', al_id='', al_url='', ar_id='', ar_url=''):
     new = False
     with connectsql.connect_to_database() as conn_t:
         # 使用查询字符串的md5
@@ -194,10 +206,28 @@ def write_img(title: str, artist: str, album: str, mu_id, mu_url, al_id, al_url,
             # 不存在此内容，插入数据
             if not result_hash:
                 new = True
-                sql_insert = "INSERT INTO api_img (music, artist, album, hash, mu_id, mu_url, al_id, al_url, ar_id, " \
-                             "ar_url) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s) "
-                sql_insert_value = (title, artist, album, info_hash, mu_id, mu_url, al_id, al_url, ar_id, ar_url)
+                sql_insert = "INSERT INTO api_img (music, artist, album, hash, mu_id, al_id, ar_id) VALUES (%s, %s, " \
+                             "%s, %s, %s, %s, %s) "
+                sql_insert_value = (title, artist, album, info_hash, mu_id, al_id, ar_id)
                 cursor.execute(sql_insert, sql_insert_value)
+            if mu_id and mu_url:
+                cursor.execute("SELECT * FROM api_img_mu WHERE id = %s", (mu_id,))
+                if not cursor.fetchone():
+                    mu_insert = "INSERT IGNORE INTO api_img_mu (music, ne_id, ne_url) VALUES (%s, %s, %s)"
+                    mu_insert_value = (title, mu_id, mu_url)
+                    cursor.execute(mu_insert, mu_insert_value)
+            if al_id and al_url:
+                cursor.execute("SELECT * FROM api_img_al WHERE id = %s", (al_id,))
+                if not cursor.fetchone():
+                    al_insert = "INSERT IGNORE INTO api_img_al (album, ne_id, ne_url) VALUES (%s, %s, %s)"
+                    al_insert_value = (album, al_id, al_url)
+                    cursor.execute(al_insert, al_insert_value)
+            if ar_id and ar_url:
+                cursor.execute("SELECT * FROM api_img_ar WHERE id = %s", (ar_id,))
+                if not cursor.fetchone():
+                    ar_insert = "INSERT IGNORE INTO api_img_ar (artist, ne_id, ne_url) VALUES (%s, %s, %s)"
+                    ar_insert_value = (artist, ar_id, ar_url)
+                    cursor.execute(ar_insert, ar_insert_value)
         conn_t.commit()
     return new
 

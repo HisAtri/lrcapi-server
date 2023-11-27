@@ -40,16 +40,31 @@ def check_database_structure(checking_conn):
         CREATE TABLE api_img (
             id INT AUTO_INCREMENT PRIMARY KEY,
             music TEXT,
-            artist TEXT,
-            album TEXT,
+            artist CHAR(255),
+            album CHAR(255),
             hash VARCHAR(255) UNIQUE,
-            mu_id TEXT,
-            mu_url TEXT,
-            al_id TEXT,
-            al_url TEXT,
-            ar_id TEXT,
-            ar_url TEXT
-        )
+            mu_id CHAR(255),
+            al_id CHAR(255),
+            ar_id CHAR(255)
+        );
+        CREATE TABLE api_img_ar (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            artist CHAR(255),
+            ne_id CHAR(255) UNIQUE,
+            ne_url TEXT
+        );
+        CREATE TABLE api_img_al (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            album CHAR(255),
+            ne_id CHAR(255) UNIQUE,
+            ne_url TEXT
+        );
+        CREATE TABLE api_img_mu (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            music CHAR(255),
+            ne_id CHAR(255) UNIQUE,
+            ne_url TEXT
+        );
         """
 
         cursor.execute(create_api_key_table)

@@ -1,4 +1,6 @@
 import base64
+import logging
+
 import requests
 from fake_useragent import UserAgent
 from pack import textcompare
@@ -57,7 +59,7 @@ def search(title, artist, album, limit=5):
     return result_list
 
 
-def cover(title='', artist='', album='', mod=0, limit=5):
+def cover(title='', artist='', album='', mod=0, limit=3):
     """
     mod->
     0: 歌曲cover
@@ -90,6 +92,7 @@ def cover(title='', artist='', album='', mod=0, limit=5):
         song_id = song_info["id"]
         album_id = song_info["al"]["id"]
         album_url = song_url = song_info["al"]["picUrl"]
+        artist_name = song_info["ar"][0]["name"]
         artist_id = song_info["ar"][0]["id"]
         artist_url = get_artist_img(artist_id)
         match mod:
@@ -114,7 +117,10 @@ def cover(title='', artist='', album='', mod=0, limit=5):
                     result["url"] = artist_url
                     result["sim"] = conform_ratio
         # 插入数据库
-        write_img(song_name, singer_name, album_name, song_id, song_url, album_id, album_url, artist_id, artist_url)
+        try:
+            write_img(song_name, artist_name, album_name, song_id, song_url, album_id, album_url, artist_id, artist_url)
+        except Exception as e:
+            logging.warning(str(e))
     return result["url"]
 
 
