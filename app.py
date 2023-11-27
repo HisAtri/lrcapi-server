@@ -125,7 +125,7 @@ def lyrics():
     return "未找到匹配的歌词", 404
 
 
-@app.route('/cover')
+@app.route('/cover', methods=['GET'])
 def cover_api():
     # 此API所有参数支持为空，但是全部同时为空返回404
     title = unquote_plus(request.args.get('title', ''))
@@ -134,7 +134,6 @@ def cover_api():
     if not any((title, artist, album)):
         return "请携带参数访问", 404
     mod = 0 if title else (1 if album else 2)
-    logger.info(mod)
     # 通过数据库查询
     sort_list = sql_img_search(title=title, album=album, artist=artist, mod=mod)
     if sort_list:

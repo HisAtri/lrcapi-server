@@ -61,7 +61,10 @@ def calculate_duplicate_rate(list_1, list_2):
         # 对每个词素进行association计算
         for char_s in list_2:
             char_sim.append(association(char, char_s))
-        count += max(char_sim)
+        if len(char_sim) > 1:
+            count += max(char_sim)
+        else:
+            count += char_sim[0]
     duplicate_rate = count / len(list_1)  # 计算重复率
     return duplicate_rate
 
