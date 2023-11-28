@@ -57,7 +57,7 @@ def compress(image_data) -> list:
 
 # 保存文件的方法
 def save_file(obj_type, obj_id, filename, content):
-    file_path = root_dir / obj_type / obj_id / filename
+    file_path = root_dir / Path(str(obj_type)) / Path(str(obj_id)) / Path(str(filename))
     if not os.path.exists(file_path):
         file_path.parent.mkdir(parents=True, exist_ok=True)
         with open(file_path, 'wb') as file:
@@ -112,7 +112,7 @@ def save_url(url: str, obj_type: str, obj_id):
 
 # 检查是否存在文件，并返回URL或者FALSE
 def exist_file(obj_type: str, obj_id):
-    file_path = root_dir / obj_type / obj_id
+    file_path = root_dir / Path(str(obj_type)) / Path(str(obj_id))
     filenames = ["large.jpg", "middle.jpg", "small.jpg", "thumb.jpg"]
     for filename in filenames:
         file_path_local = file_path / filename
