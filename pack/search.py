@@ -206,8 +206,8 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                     "item": key,
                     "ratio": conform_ratio
                 })
-            sort_list = sorted(item_list, key=lambda x: 1 - x["ratio"])
-            return sort_list
+        sort_list = sorted(item_list, key=lambda x: 1 - x["ratio"])
+        return sort_list
     else:
         logging.info("No matching record found.")
         return ""
