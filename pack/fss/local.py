@@ -11,7 +11,6 @@ from pack.read_config import cfg
 
 logger = logging.getLogger(__name__)
 # 读取配置中的根目录
-enable = cfg.css.Local.enable
 root_ = cfg.fss.Local.path
 balance = cfg.fss.Local.balance
 balances = balance.split()
@@ -103,8 +102,6 @@ def run_with_timeout(managed_task, args: tuple, timeout=30):
 # 因此调试时需要等待的方法
 # 以防止主进程结束
 def save_url(url: str, obj_type: str, obj_id):
-    if not enable:
-        return
     if any(not x for x in [url, obj_type, obj_id]):
         return
     args = (url, obj_type, obj_id)
@@ -115,8 +112,6 @@ def save_url(url: str, obj_type: str, obj_id):
 
 # 检查是否存在文件，并返回URL或者FALSE
 def exist_file(obj_type: str, obj_id):
-    if not enable:
-        return
     file_path = root_dir / obj_type / obj_id
     filenames = ["large.jpg", "middle.jpg", "small.jpg", "thumb.jpg"]
     for filename in filenames:
