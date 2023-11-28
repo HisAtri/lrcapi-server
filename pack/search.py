@@ -2,6 +2,7 @@ from pack import connectsql
 import hashlib
 import logging
 from pack import textcompare
+from pack.fss import local
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -103,6 +104,7 @@ def sql_key_search(song_name, singer_name, album_name):
                 return ""
 
 
+# 图片部分
 def sql_img_search(title: str, artist: str, album: str, mod=0):
     """
     mod->
@@ -210,19 +212,23 @@ def write_img(title: str, artist: str, album: str, mu_id='', mu_url='', al_id=''
                              "%s, %s, %s, %s, %s) "
                 sql_insert_value = (title, artist, album, info_hash, mu_id, al_id, ar_id)
                 cursor.execute(sql_insert, sql_insert_value)
+            # 插入表中，同时储存在文件系统
             if mu_id and mu_url:
+                local.save_url(url=mu_url, obj_type="mu", obj_id=mu_id)
                 cursor.execute("SELECT * FROM api_img_mu WHERE id = %s", (mu_id,))
                 if not cursor.fetchone():
                     mu_insert = "INSERT IGNORE INTO api_img_mu (music, ne_id, ne_url) VALUES (%s, %s, %s)"
                     mu_insert_value = (title, mu_id, mu_url)
                     cursor.execute(mu_insert, mu_insert_value)
             if al_id and al_url:
+                local.save_url(url=al_url, obj_type="al", obj_id=al_id)
                 cursor.execute("SELECT * FROM api_img_al WHERE id = %s", (al_id,))
                 if not cursor.fetchone():
                     al_insert = "INSERT IGNORE INTO api_img_al (album, ne_id, ne_url) VALUES (%s, %s, %s)"
                     al_insert_value = (album, al_id, al_url)
                     cursor.execute(al_insert, al_insert_value)
             if ar_id and ar_url:
+                local.save_url(url=ar_url, obj_type="ar", obj_id=ar_id)
                 cursor.execute("SELECT * FROM api_img_ar WHERE id = %s", (ar_id,))
                 if not cursor.fetchone():
                     ar_insert = "INSERT IGNORE INTO api_img_ar (artist, ne_id, ne_url) VALUES (%s, %s, %s)"
