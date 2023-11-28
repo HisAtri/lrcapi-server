@@ -201,7 +201,7 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                     conform_ratio = (lambda x: x if x > 0.5 else 0)(textcompare.assoc_artists(artist, item_artist))
                 case _:
                     raise ValueError("错误的模式，只允许0,1,2")
-            if key[1]:
+            if key[1] and conform_ratio >= 0.5:
                 item_list.append({
                     "item": key,
                     "ratio": conform_ratio
