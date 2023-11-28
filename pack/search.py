@@ -111,6 +111,8 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
     0: 歌曲cover
     1：专辑cover
     2：艺术家cover
+
+    return: Sort list
     """
     def get_pic(_table: str, _id):
         with connectsql.connect_to_database() as conn_g:
@@ -126,6 +128,17 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                     return result_dict["ne_url"]
         return None
 
+    def get_artist(results):
+        results_list = []
+        for ar_item in results:
+            ar_item_dict = {
+                "id": ar_item[0],
+                "artist": ar_item[1],
+                "ne_id": ar_item[2],
+                "ne_url": ar_item[3]
+            }
+            results_list.append(ar_item_dict)
+
     title_0 = "%" + textcompare.zero_item(title) + "%" if title else "%"
     singer_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
     album_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
@@ -140,43 +153,63 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                     query = "SELECT * FROM api_img WHERE album LIKE %s AND artist LIKE %s"
                     values = (album_0, singer_0)
                 case 2:
-                    query = "SELECT * FROM api_img WHERE artist LIKE %s"
+                    query = "SELECT * FROM api_img_ar WHERE artist LIKE %s"
                     values = (singer_0,)
                 case _:
                     raise ValueError("错误的模式，只允许0,1,2")
             cursor.execute(query, values)
             result_all = cursor.fetchall()
     if result_all:
+        if mod == 2:
+            return get_artist(result_all)
         item_list = []
         for item in result_all:
-            item_dict = {
-                "id": item[0],
-                "music": item[1],
-                "artist": item[2],
-                "album": item[3],
-                "mu_id": item[5],
-                "al_id": item[6],
-                "ar_id": item[7]
-            }
-            item_title = item_dict["music"]
-            item_artist = item_dict["artist"]
-            item_album = item_dict["album"]
             match mod:
                 # 判断好请求的类型
                 # 同时计算相似度
                 # key为元组，同时包含ID和URL
                 case 0:
+                    item_dict = {
+                        "id": item[0],
+                        "music": item[1],
+                        "artist": item[2],
+                        "album": item[3],
+                        "mu_id": item[5],
+                        "al_id": item[6],
+                        "ar_id": item[7]
+                    }
+                    item_title = item_dict["music"]
+                    item_artist = item_dict["artist"]
+                    item_album = item_dict["album"]
                     key = (item_dict["mu_id"], get_pic("api_img_mu", item_dict["mu_id"]))
                     ti_ratio = textcompare.association(title, item_title)
                     ar_ratio = textcompare.assoc_artists(artist, item_artist)
                     al_ratio = textcompare.association(album, item_album)
                     conform_ratio = (lambda x: x if x >= 0.3 else 0)((ti_ratio * ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                 case 1:
+                    item_dict = {
+                        "id": item[0],
+                        "music": item[1],
+                        "artist": item[2],
+                        "album": item[3],
+                        "mu_id": item[5],
+                        "al_id": item[6],
+                        "ar_id": item[7]
+                    }
+                    item_artist = item_dict["artist"]
+                    item_album = item_dict["album"]
                     key = (item_dict["al_id"], get_pic("api_img_al", item_dict["al_id"]))
                     ar_ratio = textcompare.assoc_artists(artist, item_artist)
                     al_ratio = textcompare.association(album, item_album)
                     conform_ratio = (lambda x: x if x >= 0.3 else 0)((ar_ratio * (0.01 * al_ratio + 0.99)) ** 0.5)
                 case 2:
+                    item_dict = {
+                        "id": item[0],
+                        "artist": item[1],
+                        "ne_id": item[2],
+                        "ne_url": item[3]
+                    }
+                    item_artist = item_dict["artist"]
                     key = (item_dict["ar_id"], get_pic("api_img_ar", item_dict["ar_id"]))
                     conform_ratio = (lambda x: x if x > 0.8 else 0)(textcompare.assoc_artists(artist, item_artist))
                 case _:

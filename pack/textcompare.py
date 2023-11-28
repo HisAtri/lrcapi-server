@@ -114,6 +114,6 @@ def zero_item(text: str) -> str:
 
 
 if __name__ == "__main__":
-    text_s = "aaaa&bbbb&ccccc"
-    text_r = "aaaa&ccccc&bbbb"
-    print(str_duplicate_rate(text_s, text_r))
+    text_s = "蔡依林"
+    text_r = "林志炫"
+    print(assoc_artists(text_s, text_r))
