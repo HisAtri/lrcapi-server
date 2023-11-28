@@ -128,17 +128,6 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                     return result_dict["ne_url"]
         return None
 
-    def get_artist(results):
-        results_list = []
-        for ar_item in results:
-            ar_item_dict = {
-                "id": ar_item[0],
-                "artist": ar_item[1],
-                "ne_id": ar_item[2],
-                "ne_url": ar_item[3]
-            }
-            results_list.append(ar_item_dict)
-
     title_0 = "%" + textcompare.zero_item(title) + "%" if title else "%"
     singer_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
     album_0 = "%" + textcompare.zero_item(artist) + "%" if artist else "%"
@@ -160,8 +149,6 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
             cursor.execute(query, values)
             result_all = cursor.fetchall()
     if result_all:
-        if mod == 2:
-            return get_artist(result_all)
         item_list = []
         for item in result_all:
             match mod:
@@ -210,8 +197,8 @@ def sql_img_search(title: str, artist: str, album: str, mod=0):
                         "ne_url": item[3]
                     }
                     item_artist = item_dict["artist"]
-                    key = (item_dict["ar_id"], get_pic("api_img_ar", item_dict["ar_id"]))
-                    conform_ratio = (lambda x: x if x > 0.8 else 0)(textcompare.assoc_artists(artist, item_artist))
+                    key = (item_dict["ne_id"], get_pic("api_img_ar", item_dict["ne_id"]))
+                    conform_ratio = (lambda x: x if x > 0.5 else 0)(textcompare.assoc_artists(artist, item_artist))
                 case _:
                     raise ValueError("错误的模式，只允许0,1,2")
             if key[1]:
